@@ -13,13 +13,17 @@ export type BlockerCode =
   | 'DEFECT_NO_PHOTO'
   | 'NA_NO_REASON'
   | 'ROOM_NO_WIDE_PHOTO'
-  | 'GENERAL_MISSING';
+  | 'GENERAL_MISSING'
+  /** Server-side only check (apps/api serverIssueBlockers): a live photo whose file hasn't reached the server.
+   *  The issue transaction locks the visit, after which photo uploads are rejected, so every photo must be uploaded first. */
+  | 'PHOTO_NOT_UPLOADED';
 
 export interface Blocker {
   code: BlockerCode;
   message: string;
   roomInstanceId?: string;
   itemRecordId?: string;
+  photoId?: string;
 }
 
 export interface IssueInput {

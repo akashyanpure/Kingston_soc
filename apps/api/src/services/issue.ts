@@ -21,7 +21,7 @@ export interface StoredSnapshot extends ReportSnapshot {
   contentSha256: string;
 }
 
-export type ServerBlocker = Omit<Blocker, 'code'> & { code: Blocker['code'] | 'PHOTO_NOT_UPLOADED'; photoId?: string };
+export type ServerBlocker = Blocker; // PHOTO_NOT_UPLOADED + photoId now live in @soc/shared
 
 /**
  * Shared issue rules + a server-only rule: every live photo must have its binary uploaded
