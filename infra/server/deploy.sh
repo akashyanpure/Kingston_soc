@@ -25,6 +25,8 @@ MAIL_DIR=/data/mail
 COOKIE_SECURE=true
 TRUST_PROXY_HOPS=2
 LOG_LEVEL=info
+# Postcode lookup: postcodes_io (free). Switch to os_places + OS_PLACES_API_KEY with the council's PSGA access.
+ADDRESS_PROVIDER=postcodes_io
 EOF
 umask 022
 
