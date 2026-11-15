@@ -180,3 +180,24 @@ describe('address routes', () => {
     }
   });
 });
+
+describe('postcodes.io autocomplete for a bare outward code', () => {
+  it('returns only postcodes in that district (KT2, not KT20/KT21)', async () => {
+    const f = fakeFetch({
+      '/postcodes/KT2%205/autocomplete': () => json(200, { result: ['KT2 5AA', 'KT2 5AB'] }),
+      '/postcodes/KT2%206/autocomplete': () => json(200, { result: ['KT2 6EU', 'KT2 6EX'] }),
+      '/postcodes/KT2/autocomplete': () => json(200, { result: ['KT20 5AA', 'KT21 1AA'] }), // raw prefix noise
+      '/autocomplete': () => json(200, { result: null }),
+    });
+    const pio = new PostcodesIoLookup(f.fn);
+    expect(await pio.autocomplete('kt2')).toEqual(['KT2 5AA', 'KT2 5AB', 'KT2 6EU', 'KT2 6EX']);
+    expect(f.calls.length).toBe(11); // raw + KT2 0 … KT2 9, in parallel
+  });
+  it('passes anything more specific straight through', async () => {
+    const f = fakeFetch({ '/postcodes/KT26/autocomplete': () => json(200, { result: ['KT2 6AA', 'KT2 6AB'] }), '/autocomplete': () => json(200, { result: null }) });
+    expect(await new PostcodesIoLookup(f.fn).autocomplete('KT26')).toEqual(['KT2 6AA', 'KT2 6AB']);
+    const g = fakeFetch({ '/postcodes/KT2%206E/autocomplete': () => json(200, { result: ['KT2 6EU'] }) });
+    expect(await new PostcodesIoLookup(g.fn).autocomplete('kt2 6e')).toEqual(['KT2 6EU']);
+    expect(g.calls.length).toBe(1);
+  });
+});

@@ -82,7 +82,8 @@ export function PropertyFields({ value, onChange, idPrefix = 'pf' }: { value: Pr
     const t = setTimeout(() => {
       const full = normalisePostcode(raw);
       if (!navigator.onLine) { setSuggestions([]); setOpen(false); setState({ kind: 'unavailable' }); return; }
-      api<{ postcodes: string[] }>(`/address/autocomplete?q=${encodeURIComponent(compact)}`)
+      // Keep the user's space ("KT2 6") — it tells the server where the outward code ends.
+      api<{ postcodes: string[] }>(`/address/autocomplete?q=${encodeURIComponent(raw.replace(/\s+/g, ' '))}`)
         .then((r) => {
           const list = r.postcodes.filter((p) => p !== full);
           setSuggestions(list);

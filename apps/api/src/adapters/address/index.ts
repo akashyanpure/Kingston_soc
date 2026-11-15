@@ -101,13 +101,47 @@ export class PostcodesIoLookup implements AddressLookup {
     };
   }
 
+  /**
+   * postcodes.io matches by raw prefix (it copes with "KT26" → "KT2 6…"), but a bare outward
+   * code like "KT2" also matches KT20/KT21… (Tadworth) and a trailing space is trimmed. So for an
+   * exact outward code we ask for "KT2 0" … "KT2 9" in parallel and keep only real KT2 postcodes.
+   */
   async autocomplete(partial: string): Promise<string[]> {
+    const s = partial.toUpperCase().replace(/\s+/g, ' ').trim();
+    const candidates = postcodeCandidates(s);
+    const lists = await Promise.all(candidates.map((c) => this.autocompleteRaw(c)));
+    const out: string[] = [];
+    for (const list of lists) for (const pc of list) if (!out.includes(pc)) out.push(pc);
+    return (OUTWARD.test(s) ? out.filter((pc) => keepForShortInput(pc, s)) : out).slice(0, 10);
+  }
+
+  private async autocompleteRaw(partial: string): Promise<string[]> {
     const { status, body } = await getJson(this.fetchFn, this.provider, `${this.baseUrl}/postcodes/${encodeURIComponent(partial)}/autocomplete?limit=10`, this.timeoutMs);
     if (status === 404) return [];
     if (status !== 200) throw new AddressLookupUnavailable(this.provider, `HTTP ${status}`);
     const result = (body as { result?: string[] | null } | null)?.result;
     return Array.isArray(result) ? result.slice(0, 10) : [];
   }
+}
+
+const OUTWARD = /^[A-Z]{1,2}[0-9][A-Z0-9]?$/;
+
+/**
+ * Queries for a partial postcode. Short inputs shaped like an outward code ("KT2", "KT26") are
+ * ambiguous: "KT2" is a district, "KT26" means "KT2 6…". Ask for the raw prefix AND "<input> 0…9".
+ */
+export function postcodeCandidates(input: string): string[] {
+  const s = input.toUpperCase().replace(/\s+/g, ' ').trim();
+  if (OUTWARD.test(s)) return [s, ...Array.from({ length: 10 }, (_, d) => `${s} ${d}`)];
+  return [s];
+}
+
+/** Keep "KT2 6EU" for "KT2" and for "KT26", but not "KT20 5AA" for "KT2". */
+function keepForShortInput(pc: string, s: string): boolean {
+  const outward = pc.split(' ')[0] ?? '';
+  if (outward === s) return true; // exactly that district
+  const compact = pc.replace(' ', '');
+  return compact.startsWith(s) && outward.length < s.length; // input runs into the inward code
 }
 
 // ── OS Places (AddressBase, PSGA) ────────────────────────────────────────────
