@@ -44,7 +44,7 @@ export function Done() {
   }, [reportId, ready, online]);
 
   if (data === undefined) return <ScreenSkeleton cards={2} />;
-  if (!data) return <Navigate to="/" replace />;
+  if (!data) return <Navigate to="/visits" replace />;
   const { visit, report, property, signatures } = data;
   const issued = visit.status === 'issued' && report;
 
@@ -104,7 +104,7 @@ export function Done() {
         {!ready && <p className="small muted" role="status">Generating the PDF…</p>}
 
         <div className="btn-grid" style={{ marginTop: 16 }}>
-          <Link to="/" className="btn btn--lg">Back to visits</Link>
+          <Link to="/visits" className="btn btn--lg">Back to visits</Link>
           {online && ready ? (
             <a href={`/api/reports/${report.id}/pdf`} target="_blank" rel="noopener" className="btn btn--primary btn--lg"><Icon name="file" size={18} /> Open the PDF</a>
           ) : (

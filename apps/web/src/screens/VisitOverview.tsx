@@ -33,7 +33,7 @@ export function VisitOverview() {
   if (data === null) {
     return (
       <div>
-        <Link to="/" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
+        <Link to="/visits" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
         <div className="notice notice--strong">This visit is not on this phone. Connect to download it.</div>
       </div>
     );
@@ -96,7 +96,7 @@ export function VisitOverview() {
 
   return (
     <div>
-      <Link to="/" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
+      <Link to="/visits" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
       <section className="card hero" aria-labelledby="visit-h">
         <div>
           <div className="chiprow">

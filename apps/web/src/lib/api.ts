@@ -53,6 +53,12 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+/** The cloud server is switched off (S3/CloudFront still serve the app): 503 SERVICE_OFFLINE. */
+export function isServiceOffline(e: unknown): boolean {
+  return e instanceof HttpError && e.code === 'SERVICE_OFFLINE';
+}
+export const SERVICE_OFFLINE_RETRY_MS = 5 * 60_000;
+
 /** Treat as "try again later" rather than a real rejection. */
 export function isTransient(e: unknown): boolean {
   if (e instanceof NetworkError) return true;

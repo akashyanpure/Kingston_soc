@@ -19,7 +19,7 @@
 import type {
   MutationResult, PushRequest, PushResponse, Report, SyncEntity, VisitBundle, VisitSummary,
 } from '@soc/shared';
-import { api, apiRaw, HttpError, isTransient } from './api';
+import { api, apiRaw, HttpError, isServiceOffline, isTransient, SERVICE_OFFLINE_RETRY_MS } from './api';
 import { db, getMeta, setMeta, type OutboxEntry, type PendingAction, type SessionUser } from './db';
 import { fetchReference } from './reference';
 import { newId, saveEdit } from './mutations';
@@ -48,7 +48,8 @@ export function orderForPush<T extends Pick<OutboxEntry, 'entity' | 'seq' | 'dat
 
 const visitOf = (m: Pick<OutboxEntry, 'entity' | 'id' | 'data'>) => (m.entity === 'visit' ? m.id : String(m.data.visitId));
 
-export type SyncPhase = 'idle' | 'syncing' | 'error' | 'auth';
+/** 'off' = the server is switched off (SERVICE_OFFLINE): like being offline, work stays queued. */
+export type SyncPhase = 'idle' | 'syncing' | 'error' | 'auth' | 'off';
 export interface SyncStatus {
   online: boolean;
   phase: SyncPhase;
@@ -190,7 +191,11 @@ export class SyncEngine {
       this.set({ phase: 'idle', lastSyncAt: new Date().toISOString(), lastError: null });
     } catch (e) {
       result.error = e instanceof Error ? e.message : String(e);
-      if (e instanceof HttpError && e.status === 401) {
+      if (isServiceOffline(e)) {
+        // Calm state: nothing is wrong on the device; check again in ~5 minutes.
+        this.set({ phase: 'off', lastError: null });
+        this.schedule(SERVICE_OFFLINE_RETRY_MS);
+      } else if (e instanceof HttpError && e.status === 401) {
         this.set({ phase: 'auth', lastError: 'Sign in again to upload your work.' });
       } else {
         this.failures++;

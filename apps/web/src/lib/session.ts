@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { LoginRequest, User } from '@soc/shared';
-import { api, HttpError } from './api';
+import { api, HttpError, isServiceOffline } from './api';
 import { db, setMeta, type SessionUser } from './db';
 import { fetchReference } from './reference';
 import { syncEngine } from './sync';
@@ -23,6 +23,16 @@ async function startSession(user: User): Promise<SessionUser> {
 export async function login(req: LoginRequest): Promise<SessionUser> {
   const { user } = await api<{ user: User }>('/auth/login', { method: 'POST', json: req });
   return startSession(user);
+}
+
+/** Is the cloud service switched off? (GET /auth/me answers 503 SERVICE_OFFLINE.) Other outcomes → false. */
+export async function serviceSwitchedOff(): Promise<boolean> {
+  try {
+    await api('/auth/me');
+    return false;
+  } catch (e) {
+    return isServiceOffline(e);
+  }
 }
 
 /** Dev-only user picker; null when the server does not offer it (production / SSO). */

@@ -54,7 +54,7 @@ export function Review() {
   }, [data?.visit.status, data?.visit.id, nav]);
 
   if (data === undefined || ref === undefined || session === undefined) return <ScreenSkeleton cards={4} />;
-  if (!data || !form) return <Navigate to="/" replace />;
+  if (!data || !form) return <Navigate to="/visits" replace />;
 
   const { visit } = data;
   const items = relevantItems(data.rooms, data.items);

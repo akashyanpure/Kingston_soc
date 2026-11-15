@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  PROPERTY_TYPES, SCHEMES, VISIT_TYPES,
+  PROPERTY_TYPES, SCHEMES, VISIT_TYPES, normalisePostcode,
   type CreatePropertyRequest, type CreateVisitRequest, type PropertyWithLandlord, type SchemeCode, type VisitBundle, type VisitType,
 } from '@soc/shared';
 import { api, HttpError, isTransient } from '../lib/api';
@@ -16,6 +16,7 @@ import { mergeBundle, syncEngine } from '../lib/sync';
 import { createVisitLocally } from '../lib/visitFactory';
 import { VISIT_TYPE_LABEL, addressOf } from '../lib/visitData';
 import { Icon } from '../components/ui';
+import { PropertyFields, emptyPropertyDraft, propertyDraftReady, type PropertyDraft } from '../components/PropertyFields';
 
 type NewProp = Omit<CreatePropertyRequest, 'id' | 'landlord'> & { landlordName: string; landlordCompany: string; landlordEmail: string; landlordPhone: string };
 const EMPTY_PROP: NewProp = {
@@ -35,6 +36,7 @@ export function NewVisit() {
   const [selected, setSelected] = useState<PropertyWithLandlord | null>(null);
   const [creating, setCreating] = useState(false);
   const [np, setNp] = useState<NewProp>(EMPTY_PROP);
+  const [addr, setAddr] = useState<PropertyDraft>(emptyPropertyDraft());
   const [scheme, setScheme] = useState<SchemeCode>('PLS');
   const [visitType, setVisitType] = useState<VisitType>('check_in');
   const [propType, setPropType] = useState<string>('2-bed flat');
@@ -73,14 +75,14 @@ export function NewVisit() {
 
   const roomCount = present.size;
   const itemCount = form?.rooms.filter((r) => present.has(r.code)).reduce((n, r) => n + r.items.length, 0) ?? 0;
-  const propertyReady = selected !== null || (creating && np.addressLine1.trim() && np.postcode.trim().length >= 5);
+  const propertyReady = selected !== null || (creating && propertyDraftReady(addr));
   const schemes = ref?.schemes?.length ? ref.schemes : SCHEMES.map((s) => ({ code: s.code, name: s.name }));
 
   if (ref === undefined || session === undefined) return null;
   if (!form || !ref) {
     return (
       <div>
-        <Link to="/" className="back-link">← My visits</Link>
+        <Link to="/visits" className="back-link">← My visits</Link>
         <h1 className="title">New visit</h1>
         <div className="notice notice--strong">The form has not been downloaded to this phone yet. Connect once to fetch it, then you can start visits offline.</div>
         <button type="button" className="btn btn--block" onClick={() => void syncEngine.syncNow({ pull: true })}>Try again</button>
@@ -107,8 +109,8 @@ export function NewVisit() {
           ? { id: newId(), name: np.landlordName.trim(), company: np.landlordCompany.trim() || null, email: np.landlordEmail.trim() || null, phone: np.landlordPhone.trim() || null }
           : null;
         const req: CreatePropertyRequest = {
-          id: propertyId, uprn: np.uprn?.trim() || null, addressLine1: np.addressLine1.trim(), addressLine2: np.addressLine2?.trim() || null,
-          town: np.town.trim(), postcode: np.postcode.trim().toUpperCase(), propertyType: propType as CreatePropertyRequest['propertyType'],
+          id: propertyId, uprn: addr.uprn.trim() || null, addressLine1: addr.addressLine1.trim(), addressLine2: addr.addressLine2.trim() || null,
+          town: addr.town.trim(), postcode: (normalisePostcode(addr.postcode) ?? addr.postcode.trim()).toUpperCase(), propertyType: propType as CreatePropertyRequest['propertyType'],
           bedrooms: np.bedrooms, landlordId: landlord?.id ?? null, landlord,
         };
         const { landlord: _l, ...prop } = req;
@@ -158,7 +160,7 @@ export function NewVisit() {
 
   return (
     <form onSubmit={(e) => void submit(e)}>
-      <Link to="/" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
+      <Link to="/visits" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
       <div className="kicker">Start an inspection</div>
       <h1 className="title">New visit</h1>
 
@@ -173,18 +175,7 @@ export function NewVisit() {
           </div>
         ) : creating ? (
           <div className="card">
-            <div className="field"><label className="field__label" htmlFor="np-a1">Address line 1</label>
-              <input id="np-a1" className="input" value={np.addressLine1} onChange={(e) => setNp({ ...np, addressLine1: e.target.value })} required /></div>
-            <div className="field"><label className="field__label" htmlFor="np-a2">Address line 2 (optional)</label>
-              <input id="np-a2" className="input" value={np.addressLine2 ?? ''} onChange={(e) => setNp({ ...np, addressLine2: e.target.value })} /></div>
-            <div className="field-grid">
-              <div className="field"><label className="field__label" htmlFor="np-town">Town</label>
-                <input id="np-town" className="input" value={np.town} onChange={(e) => setNp({ ...np, town: e.target.value })} /></div>
-              <div className="field"><label className="field__label" htmlFor="np-pc">Postcode</label>
-                <input id="np-pc" className="input" value={np.postcode} autoCapitalize="characters" onChange={(e) => setNp({ ...np, postcode: e.target.value })} required /></div>
-            </div>
-            <div className="field"><label className="field__label" htmlFor="np-uprn">UPRN (optional)</label>
-              <input id="np-uprn" className="input" inputMode="numeric" value={np.uprn ?? ''} onChange={(e) => setNp({ ...np, uprn: e.target.value })} /></div>
+            <PropertyFields value={addr} onChange={setAddr} idPrefix="np" />
             <div className="field"><label className="field__label" htmlFor="np-ll">Landlord / agent name (optional)</label>
               <input id="np-ll" className="input" value={np.landlordName} onChange={(e) => setNp({ ...np, landlordName: e.target.value })} /></div>
             {np.landlordName && (
@@ -220,7 +211,7 @@ export function NewVisit() {
             {query.trim().length >= 2 && results.length === 0 && (
               <p className="small muted" style={{ marginTop: 6 }}>{online ? 'No matching property.' : 'No match on this phone (offline search only covers properties already downloaded).'}</p>
             )}
-            <button type="button" className="btn btn--block" style={{ marginTop: 8 }} onClick={() => { setCreating(true); setNp({ ...EMPTY_PROP, addressLine1: query }); }}>
+            <button type="button" className="btn btn--block" style={{ marginTop: 8 }} onClick={() => { setCreating(true); setNp(EMPTY_PROP); setAddr({ ...emptyPropertyDraft(), ...(normalisePostcode(query) ? { postcode: normalisePostcode(query)! } : { addressLine1: query }) }); }}>
               <Icon name="plus" size={18} /> Add a new property
             </button>
           </>

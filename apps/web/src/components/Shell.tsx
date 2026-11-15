@@ -14,6 +14,9 @@ export function SyncBanner() {
   if (!status.online) {
     text = q.total ? `Offline · ${q.total} queued` : 'Offline · saved on phone';
     mod = 'offline';
+  } else if (status.phase === 'off') {
+    text = 'Service off · saved';
+    mod = 'off';
   } else if (status.phase === 'syncing') {
     text = q.total ? `Syncing · ${q.total}` : 'Syncing';
     mod = 'syncing';
@@ -46,6 +49,17 @@ export function SyncBanner() {
   );
 }
 
+/** Calm full-width note while the cloud service is switched off (sync phase 'off'). */
+export function ServiceOffBanner() {
+  const status = useSyncStatus();
+  if (status.phase !== 'off') return null;
+  return (
+    <div className="service-off" role="status">
+      <Icon name="cloudOff" size={18} /> Service switched off · work saved on this phone
+    </div>
+  );
+}
+
 export function RequireSession() {
   const session = useSession();
   const loc = useLocation();
@@ -71,21 +85,22 @@ export function Shell({ wide }: { wide?: boolean }) {
       <a href="#main" className="skip-link">Skip to content</a>
       {session && (
         <header className="statusbar">
-          <Link to="/" className="statusbar__brand" aria-label="Kingston Schedule of Condition, home">
+          <Link to="/visits" className="statusbar__brand" aria-label="Kingston Schedule of Condition, home">
             <img src={KINGSTON_CREST} alt="" />
             <span>Kingston <em>SOC</em></span>
           </Link>
           <SyncBanner />
         </header>
       )}
+      {session && <ServiceOffBanner />}
       <main id="main" className="shell__main" tabIndex={-1}>
         <Outlet />
       </main>
       {session && (
         <nav className="tabbar" aria-label="Main">
-          <Tab to="/" end icon="home" label="Visits" />
+          <Tab to="/visits" end icon="home" label="Visits" />
           <Tab to="/visits/new" icon="plus" label="New visit" />
-          {isManager && <Tab to="/manager" icon="grid" label="Manager" />}
+          {isManager && <Tab to={session?.role === 'admin' ? '/admin' : '/manage'} icon="grid" label={session?.role === 'admin' ? 'Admin' : 'Manage'} />}
           <Tab to="/account" icon="user" label="Account" />
         </nav>
       )}

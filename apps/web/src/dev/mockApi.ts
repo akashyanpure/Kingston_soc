@@ -1,36 +1,53 @@
 /**
- * DEV ONLY — a tiny in-browser stand-in for apps/api so the UI can be exercised without
- * the backend: `VITE_MOCK_API=1 pnpm --filter @soc/web dev`. Off by default and never
- * bundled otherwise (main.tsx imports it behind a static env check). Follows the
- * contract in @soc/shared/api.ts loosely; it is not a reference implementation.
- * Toggle the browser's offline mode (DevTools → Network → Offline) to test sync:
- * the shim fails like a real network while navigator.onLine is false.
+ * DEV ONLY — an in-browser stand-in for apps/api so the UI can be exercised without the
+ * backend: `VITE_MOCK_API=1 pnpm --filter @soc/web dev`. Off by default and never bundled
+ * otherwise (main.tsx imports it behind a static env check). It follows the contract in
+ * @soc/shared (api.ts, roles.ts) loosely; it is not a reference implementation.
+ *
+ * Seeded with a realistic week: three officers, a manager and an admin, ~20 visits in every
+ * status, issued reports (some without a landlord signature), Unacceptable items, phrases,
+ * an audit trail and a PDF job queue. State persists in localStorage (key below).
+ * Toggle the browser offline to test sync: the shim fails like a real network.
  */
 import {
-  buildFormDefinition, issueBlockers, SCHEMES, visitContentHash,
-  type CreateVisitRequest, type DescriptionPhrase, type Mutation, type PushRequest, type ReferenceData, type User, type VisitBundle, type VisitSummary,
+  buildFormDefinition, issueBlockers, normalisePostcode, SCHEMES, visitContentHash, type PostcodeLookup,
+  type AuditEvent, type CreatePhraseRequest, type CreateUserRequest, type CreateVisitRequest, type DescriptionPhrase,
+  type FormSummary, type ManagerOverview, type Mutation, type PushRequest, type ReferenceData, type ReportSummary,
+  type SystemStatus, type UpdateUserRequest, type User, type VisitBundle, type VisitSummary,
 } from '@soc/shared';
 import { renderReportHtml } from '@soc/report';
 import { v7 as uuidv7 } from 'uuid';
 import { buildVisitCreates } from '../lib/visitFactory';
 import { setFetch } from '../lib/api';
 
-const KEY = 'soc-mock-api-v2';
+const KEY = 'soc-mock-api-v3';
 const FORM_VERSION_ID = '0196f000-0000-7000-8000-000000000001';
-const USERS: User[] = [
+const FORM = buildFormDefinition();
+const STARTED_AT = Date.now();
+
+const SEED_USERS: User[] = [
   { id: '0196f000-0000-7000-8000-0000000000a1', email: 'p.dekaate@kingston.test', name: 'P. Dekaate', role: 'officer', active: true },
-  { id: '0196f000-0000-7000-8000-0000000000a2', email: 'r.manager@kingston.gov.uk', name: 'R. Okafor', role: 'manager', active: true },
+  { id: '0196f000-0000-7000-8000-0000000000a3', email: 's.ahmed@kingston.test', name: 'S. Ahmed', role: 'officer', active: true },
+  { id: '0196f000-0000-7000-8000-0000000000a4', email: 'l.novak@kingston.test', name: 'L. Novak', role: 'officer', active: true },
+  { id: '0196f000-0000-7000-8000-0000000000a2', email: 'manager@kingston.test', name: 'R. Okafor', role: 'manager', active: true },
+  { id: '0196f000-0000-7000-8000-0000000000a5', email: 'admin@kingston.test', name: 'J. Whitfield', role: 'admin', active: true },
 ];
 
-type Rows = Record<string, Record<string, unknown>>;
+type Row = Record<string, unknown>;
+type Rows = Record<string, Row>;
 interface State {
   me: string | null;
+  users: User[];
+  schemes: { code: string; name: string }[];
+  phrases: DescriptionPhrase[];
   properties: Rows;
   landlords: Rows;
-  tables: Record<string, Rows>; // entity → id → row
+  tables: Record<string, Rows>; // entity table → id → row
   reports: Rows;
   processed: string[];
   seq: number;
+  audit: AuditEvent[];
+  auditSeq: number;
 }
 
 const ENTITY_TABLE: Record<string, string> = {
@@ -46,39 +63,183 @@ function load(): State {
   return seed();
 }
 function save(s: State) {
-  localStorage.setItem(KEY, JSON.stringify(s));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch { /* quota: keep in memory */ }
 }
 
+// ── seed ─────────────────────────────────────────────────────────────────────
+let rnd = 42;
+const rand = () => ((rnd = (rnd * 1103515245 + 12345) % 2147483648) / 2147483648);
+const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!;
+const isoDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function monday(d = new Date()) {
+  const m = new Date(d);
+  m.setHours(0, 0, 0, 0);
+  m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+  return m;
+}
+const at = (base: Date, dayOffset: number, h: number, min = 0) => {
+  const d = new Date(base);
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(h, min, 0, 0);
+  return d;
+};
+
+const PLANS: Record<string, string[]> = {
+  'Studio flat': ['FRONT_DOOR', 'RECEPTION', 'KITCHEN', 'BATHROOM'],
+  '1-bed flat': ['FRONT_DOOR', 'HALLWAY', 'RECEPTION', 'KITCHEN', 'BEDROOM_1', 'BATHROOM'],
+  '2-bed flat': ['FRONT_DOOR', 'HALLWAY', 'RECEPTION', 'KITCHEN', 'BEDROOM_1', 'BEDROOM_2', 'BATHROOM'],
+};
+const DEFECTS: Record<string, [string, string][]> = {
+  F: [['Light scuffing to the lower wall by the door.', 'Fair wear; no action.'], ['Minor limescale around the taps.', 'Clean at check-out.']],
+  P: [['Worktop swollen and delaminating left of the sink.', 'Replace worktop section — landlord.'], ['Carpet stained in front of the window, approx. 1m².', 'Professional clean; replace if it persists.']],
+  U: [['Shower mixer cracked at the body; leaks under pressure. Not usable.', 'Replace mixer before letting — landlord.'], ['Smoke alarm missing from the ceiling mount.', 'Fit mains-interlinked alarm immediately.'], ['Exposed wiring behind the socket faceplate.', 'Electrician to make safe — urgent.']],
+};
+
 function seed(): State {
+  rnd = 42;
   const s: State = {
-    me: null, properties: {}, landlords: {}, reports: {}, processed: [], seq: 416,
+    me: null, users: SEED_USERS.map((u) => ({ ...u })), schemes: SCHEMES.map((x) => ({ code: x.code, name: x.name })),
+    phrases: seedPhrases(), properties: {}, landlords: {}, reports: {}, processed: [], seq: 400, audit: [], auditSeq: 1,
     tables: Object.fromEntries(Object.values(ENTITY_TABLE).map((t) => [t, {}])),
   };
-  const ll = { id: uuidv7(), name: 'A. Pemberton', company: 'Pemberton Lettings', email: 'lettings@example.org', phone: null };
-  s.landlords[ll.id] = ll;
-  const props = [
-    { addressLine1: '14 Acre Road', postcode: 'KT2 6EU', propertyType: '3-bed house', bedrooms: 3 },
-    { addressLine1: 'Flat 3, 22 Penrhyn Road', postcode: 'KT1 2BZ', propertyType: '1-bed flat', bedrooms: 1 },
-  ].map((p) => ({ id: uuidv7(), uprn: null, addressLine2: null, town: 'Kingston upon Thames', landlordId: ll.id, ...p }));
+  const landlords = [
+    { name: 'A. Pemberton', company: 'Pemberton Lettings' }, { name: 'M. Osei', company: null },
+    { name: 'K. Ward', company: 'Riverside Homes Ltd' }, { name: 'T. Brennan', company: 'Brennan & Co Lettings' },
+  ].map((l) => ({ id: uuidv7(), email: 'lettings@example.org', phone: null, ...l }));
+  for (const l of landlords) s.landlords[l.id] = l;
+  const streets = [
+    ['14 Acre Road', 'KT2 6EU', '2-bed flat'], ['Flat 3, 22 Surbiton Hill Road', 'KT6 4TP', '1-bed flat'],
+    ['8 Cambridge Gardens', 'KT1 3JW', '2-bed flat'], ['41 Villiers Avenue', 'KT5 8BD', '1-bed flat'],
+    ['Flat 12, Eden Court', 'KT1 1BD', 'Studio flat'], ['7 Burton Road', 'KT2 5TE', '2-bed flat'],
+    ['26 Elm Road', 'KT3 3HE', '1-bed flat'], ['Flat 2, 90 Ewell Road', 'KT6 6EX', 'Studio flat'],
+  ] as const;
+  const props = streets.map(([addressLine1, postcode, propertyType], i) => ({
+    id: uuidv7(), uprn: String(128000000 + i * 1371), addressLine1, addressLine2: null, town: 'Kingston upon Thames', postcode,
+    propertyType, bedrooms: propertyType === 'Studio flat' ? 0 : Number(propertyType[0]), landlordId: landlords[i % landlords.length]!.id,
+  }));
   for (const p of props) s.properties[p.id] = p;
-  const form = buildFormDefinition();
-  const scheduled = new Date();
-  scheduled.setHours(10, 30, 0, 0);
-  createVisit(s, form, {
-    id: uuidv7(), propertyId: props[0]!.id, schemeCode: 'PLS', visitType: 'check_in', scheduledAt: scheduled.toISOString(),
-    presentRoomCodes: ['FRONT_GARDEN', 'BACK_GARDEN', 'FRONT_DOOR', 'HALLWAY', 'RECEPTION', 'KITCHEN', 'STAIRS_AND_LANDING', 'BEDROOM_1', 'BEDROOM_2', 'BEDROOM_3', 'BATHROOM'],
-  }, USERS[0]!.id, 'scheduled');
+
+  const officers = s.users.filter((u) => u.role === 'officer');
+  const wk = monday();
+  const today = (new Date().getDay() + 6) % 7; // 0 = Monday
+  type Spec = { prop: number; officer: number; day: number; hour: number; status: 'scheduled' | 'in_progress' | 'completed' | 'issued'; landlordSigned?: boolean; defects?: string };
+  const specs: Spec[] = [
+    // earlier weeks (archive + property history)
+    { prop: 0, officer: 0, day: -21, hour: 10, status: 'issued', landlordSigned: true, defects: 'FF' },
+    { prop: 1, officer: 1, day: -17, hour: 11, status: 'issued', landlordSigned: true, defects: 'FP' },
+    { prop: 2, officer: 2, day: -12, hour: 9, status: 'issued', landlordSigned: false, defects: 'PU' },
+    { prop: 3, officer: 0, day: -9, hour: 14, status: 'issued', landlordSigned: true, defects: 'F' },
+    { prop: 4, officer: 1, day: -8, hour: 10, status: 'issued', landlordSigned: true, defects: '' },
+    // this week
+    { prop: 5, officer: 0, day: Math.max(0, today - 2), hour: 9, status: 'issued', landlordSigned: false, defects: 'FU' },
+    { prop: 6, officer: 1, day: Math.max(0, today - 1), hour: 13, status: 'issued', landlordSigned: true, defects: 'FFP' },
+    { prop: 7, officer: 2, day: Math.max(0, today - 1), hour: 10, status: 'issued', landlordSigned: false, defects: 'U' },
+    { prop: 1, officer: 2, day: Math.max(0, today - 1), hour: 15, status: 'completed', defects: 'FP' },
+    { prop: 0, officer: 0, day: today, hour: 9, status: 'in_progress', defects: 'U' },
+    { prop: 2, officer: 1, day: today, hour: 11, status: 'in_progress', defects: 'F' },
+    { prop: 3, officer: 0, day: today, hour: 14, status: 'scheduled' },
+    { prop: 4, officer: 1, day: today, hour: 15, status: 'scheduled' },
+    { prop: 2, officer: 1, day: Math.min(6, today + 1), hour: 14, status: 'scheduled' },
+    { prop: 0, officer: 1, day: Math.min(6, today + 4), hour: 9, status: 'scheduled' },
+    { prop: 6, officer: 1, day: Math.min(6, today + 1), hour: 10, status: 'scheduled' },
+    { prop: 7, officer: 0, day: Math.min(6, today + 2), hour: 9, status: 'scheduled' },
+    { prop: 5, officer: 2, day: Math.min(6, today + 2), hour: 13, status: 'scheduled' },
+    { prop: 3, officer: 1, day: Math.min(6, today + 3), hour: 11, status: 'scheduled' },
+  ];
+  for (const sp of specs) {
+    const prop = props[sp.prop]!;
+    const officer = officers[sp.officer]!;
+    const when = at(wk, sp.day, sp.hour, pick([0, 15, 30]));
+    const id = uuidv7();
+    createVisit(s, {
+      id, propertyId: prop.id, schemeCode: pick(['PLS', 'PLS', 'NP', 'TF', 'PRSO'] as const), visitType: pick(['check_in', 'check_in', 'check_out', 'interim'] as const),
+      scheduledAt: when.toISOString(), presentRoomCodes: PLANS[prop.propertyType]!,
+    }, officer.id, sp.status);
+    const visit = s.tables.visits![id]!;
+    if (sp.status === 'scheduled') continue;
+    const started = new Date(when.getTime() + 5 * 60_000);
+    const minutes = 38 + Math.round(rand() * 55);
+    visit.startedAt = started.toISOString();
+    const items = Object.values(s.tables.items!).filter((i) => i.visitId === id);
+    const gradeAll = sp.status !== 'in_progress';
+    items.forEach((it, n) => { if (gradeAll || n < items.length * 0.45) it.condition = 'G'; });
+    const codes = (sp.defects ?? '').split('').filter(Boolean);
+    codes.forEach((g, n) => {
+      const it = items[(n * 7 + 3) % items.length]!;
+      const [comment, dil] = pick(DEFECTS[g]!);
+      Object.assign(it, { condition: g, comment, dilapidation: dil });
+    });
+    for (const g of Object.values(s.tables.general!).filter((r) => r.visitId === id)) g.value = String(g.value || 'Good order');
+    for (const [fieldCode, value] of [['DESCRIPTION_OF_PROPERTY', `${prop.propertyType}, purpose-built block.`], ['GENERAL_CONDITION', 'Good, recently redecorated.']]) {
+      const gid = uuidv7();
+      s.tables.general![gid] = { id: gid, visitId: id, fieldCode, value, updatedAt: visit.updatedAt, updatedBy: officer.id };
+    }
+    if (sp.status === 'completed' || sp.status === 'issued') {
+      const done = new Date(started.getTime() + minutes * 60_000);
+      visit.completedAt = done.toISOString();
+      visit.updatedAt = done.toISOString();
+    }
+    if (sp.status === 'issued') {
+      const issuedAt = new Date(started.getTime() + (minutes + 4) * 60_000);
+      const report = {
+        id: uuidv7(), visitId: id, reportNumber: `SOC-${issuedAt.getFullYear()}-${String(++s.seq).padStart(4, '0')}`,
+        sha256: Array.from({ length: 64 }, () => '0123456789abcdef'[Math.floor(rand() * 16)]).join(''), pdfReady: true,
+        issuedAt: issuedAt.toISOString(), issuedBy: officer.id,
+      };
+      s.reports[report.id] = report;
+      Object.assign(visit, { reportNumber: report.reportNumber, updatedAt: report.issuedAt });
+      const sig = (role: string, name: string) => {
+        const sid = uuidv7();
+        s.tables.signatures![sid] = {
+          id: sid, visitId: id, reportId: report.id, role, name, method: 'on_device', signedAt: report.issuedAt,
+          contentSha256: report.sha256, reportSha256: null, hasImage: true, updatedAt: report.issuedAt, updatedBy: officer.id,
+        };
+      };
+      sig('officer', officer.name);
+      if (sp.landlordSigned) sig('landlord_agent', String(s.landlords[prop.landlordId]!.name));
+    }
+  }
+  // A little audit history.
+  for (const v of Object.values(s.tables.visits!).slice(0, 8)) {
+    addAudit(s, 'visit', v.id as string, 'status', 'scheduled', v.status, s.users.find((u) => u.id === v.officerId)?.name ?? null, (v.startedAt as string) ?? (v.updatedAt as string));
+  }
   return s;
 }
 
-function createVisit(s: State, form: ReturnType<typeof buildFormDefinition>, req: CreateVisitRequest, officerId: string, status = 'in_progress') {
-  const at = new Date().toISOString();
-  for (const c of buildVisitCreates(form, { ...req, formVersionId: FORM_VERSION_ID, officerId }, at)) {
-    const row = { ...c.row, updatedAt: at, updatedBy: officerId } as Record<string, unknown>;
-    if (c.entity === 'visit') Object.assign(row, { status, startedAt: status === 'scheduled' ? null : at });
+function seedPhrases(): DescriptionPhrase[] {
+  const lib: [string, string[]][] = [
+    ['WALLS', ['Emulsion, magnolia', 'Emulsion, white', 'Lining paper, painted', 'Part-tiled']],
+    ['CEILING', ['Smooth plaster, white', 'Artex, white', 'Coved, white']],
+    ['WINDOW', ['UPVC double glazed, white', 'Timber sash, painted', 'Aluminium framed']],
+    ['DOOR', ['Hardwood, painted white', 'Glazed panel', 'Flush, veneer', 'Fire door with closer']],
+    ['RADIATOR', ['Single panel, white', 'Double panel, white', 'With TRV']],
+    ['SMOKE_ALARM', ['Mains, interlinked', 'Battery, ceiling', 'Tested, sounded']],
+    ['LIGHT_FITTING', ['Pendant with shade', 'Recessed LED downlight', 'Batten holder, no shade']],
+    ['FLOORING', ['Laminate, oak effect', 'Carpet, grey', 'Vinyl, tile effect', 'Ceramic tile']],
+    ['*', ['Standard, white', 'Standard, chrome', 'Not present']],
+  ];
+  return lib.flatMap(([itemCode, list]) => list.map((phrase, i) => ({ id: uuidv7(), itemCode, phrase, sortOrder: i })));
+}
+
+function addAudit(s: State, entity: string, entityId: string, field: string, oldValue: unknown, newValue: unknown, actorName: string | null, when = new Date().toISOString()) {
+  s.audit.unshift({ id: s.auditSeq++, entity, entityId, field, oldValue, newValue, actorName, deviceId: null, at: when });
+  if (s.audit.length > 400) s.audit.length = 400;
+}
+
+function createVisit(s: State, req: CreateVisitRequest, officerId: string, status = 'in_progress') {
+  const now = new Date().toISOString();
+  for (const c of buildVisitCreates(FORM, { ...req, formVersionId: FORM_VERSION_ID, officerId }, now)) {
+    const row = { ...c.row, updatedAt: now, updatedBy: officerId } as Row;
+    if (c.entity === 'visit') Object.assign(row, { status, startedAt: status === 'scheduled' ? null : now });
+    // Only keep item rows for present rooms (the factory already does) — keeps localStorage small.
     s.tables[ENTITY_TABLE[c.entity]!]![c.row.id] = row;
   }
 }
+
+// ── read models ──────────────────────────────────────────────────────────────
+const userName = (s: State, id: unknown) => s.users.find((u) => u.id === id)?.name ?? '';
 
 function bundle(s: State, visitId: string): VisitBundle | null {
   const visit = s.tables.visits![visitId];
@@ -89,8 +250,7 @@ function bundle(s: State, visitId: string): VisitBundle | null {
   return {
     visit, property, landlord: property.landlordId ? s.landlords[property.landlordId as string] ?? null : null, tenancy: null,
     general: of('general'), appliances: of('appliances'), meters: of('meters'), rooms: of('rooms'), items: of('items'),
-    photos: of('photos'), notes: of('notes'), report,
-    signatures: of('signatures'),
+    photos: of('photos'), notes: of('notes'), report, signatures: of('signatures'),
   } as unknown as VisitBundle;
 }
 
@@ -100,59 +260,176 @@ function summary(s: State, b: VisitBundle): VisitSummary {
   return {
     id: b.visit.id, schemeCode: b.visit.schemeCode, visitType: b.visit.visitType, status: b.visit.status, scheduledAt: b.visit.scheduledAt,
     reportNumber: b.visit.reportNumber, officerId: b.visit.officerId, updatedAt: b.visit.updatedAt,
-    address: b.property.addressLine1, postcode: b.property.postcode,
-    officerName: USERS.find((u) => u.id === b.visit.officerId)?.name ?? '',
+    address: b.property.addressLine1, postcode: b.property.postcode, officerName: userName(s, b.visit.officerId),
     itemsTotal: items.length, itemsGraded: items.filter((i) => i.condition).length,
     defects: items.filter((i) => i.condition === 'F' || i.condition === 'P' || i.condition === 'U').length,
   };
 }
 
-const PHRASES: [string, string[]][] = [
-  ['WALLS', ['Emulsion, magnolia', 'Emulsion, white', 'Lining paper, painted', 'Part-tiled']],
-  ['CEILING', ['Smooth plaster, white', 'Artex, white', 'Coved, white']],
-  ['WINDOW', ['UPVC double glazed, white', 'Timber sash, painted', 'Aluminium framed']],
-  ['DOOR', ['Hardwood, painted white', 'Glazed panel', 'Flush, veneer', 'Fire door with closer']],
-  ['RADIATOR', ['Single panel, white', 'Double panel, white', 'With TRV']],
-  ['SMOKE_ALARM', ['Mains, interlinked', 'Battery, ceiling', 'Tested, sounded']],
-  ['LIGHT_FITTING', ['Pendant with shade', 'Recessed LED downlight', 'Batten holder, no shade']],
-  ['FLOORING', ['Laminate, oak effect', 'Carpet, grey', 'Vinyl, tile effect', 'Ceramic tile']],
-];
-function reference(): ReferenceData {
-  const phrases: DescriptionPhrase[] = PHRASES.flatMap(([itemCode, list]) =>
-    list.map((phrase, i) => ({ id: uuidv7(), itemCode, phrase, sortOrder: i })));
+const inRange = (iso: unknown, from: string, to: string) => {
+  if (typeof iso !== 'string') return false;
+  const d = isoDate(new Date(iso));
+  return d >= from && d <= to;
+};
+const median = (xs: number[]) => {
+  if (!xs.length) return null;
+  const v = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid]! : Math.round((v[mid - 1]! + v[mid]!) / 2);
+};
+
+function overview(s: State, from: string, to: string): ManagerOverview {
+  const visits = Object.values(s.tables.visits!);
+  const reports = Object.values(s.reports);
+  const minutesOf = (v: Row) => (v.startedAt && v.completedAt ? Math.round((Date.parse(v.completedAt as string) - Date.parse(v.startedAt as string)) / 60_000) : null);
+  const scheduledIn = visits.filter((v) => inRange(v.scheduledAt, from, to));
+  const issuedIn = reports.filter((r) => inRange(r.issuedAt, from, to));
+  const landlordSigned = (visitId: unknown) => Object.values(s.tables.signatures!).some((x) => x.visitId === visitId && x.role === 'landlord_agent');
+  const rangeVisitIds = new Set([...scheduledIn.map((v) => v.id), ...issuedIn.map((r) => r.visitId)]);
+  const uItems = Object.values(s.tables.items!).filter((i) => i.condition === 'U' && rangeVisitIds.has(i.visitId));
+  const completedIn = visits.filter((v) => inRange(v.completedAt, from, to));
+  const officers = s.users.filter((u) => u.role === 'officer');
   return {
-    formVersion: { id: FORM_VERSION_ID, version: 1, status: 'published', definition: buildFormDefinition(), publishedAt: '2026-11-15T09:00:00Z' },
-    schemes: SCHEMES.map((x) => ({ code: x.code, name: x.name })),
-    phrases,
-    officers: USERS.map(({ id, name, role }) => ({ id, name, role })),
+    from, to,
+    kpis: {
+      scheduled: scheduledIn.filter((v) => v.status === 'scheduled').length,
+      inProgress: scheduledIn.filter((v) => v.status === 'in_progress').length,
+      completed: scheduledIn.filter((v) => v.status === 'completed').length,
+      issued: issuedIn.length,
+      unacceptableOpen: uItems.length,
+      unsignedByLandlord: issuedIn.filter((r) => !landlordSigned(r.visitId)).length,
+      medianMinutesPerSoc: median(completedIn.map(minutesOf).filter((x): x is number => x !== null)),
+    },
+    byOfficer: officers.map((o) => {
+      const mine = scheduledIn.filter((v) => v.officerId === o.id);
+      return {
+        officerId: o.id, name: o.name,
+        scheduled: mine.filter((v) => v.status === 'scheduled').length,
+        inProgress: mine.filter((v) => v.status === 'in_progress' || v.status === 'completed').length,
+        issued: issuedIn.filter((r) => s.tables.visits![r.visitId as string]?.officerId === o.id).length,
+        medianMinutes: median(completedIn.filter((v) => v.officerId === o.id).map(minutesOf).filter((x): x is number => x !== null)),
+      };
+    }),
+    unacceptable: uItems.map((i) => {
+      const v = s.tables.visits![i.visitId as string]!;
+      const p = s.properties[v.propertyId as string]!;
+      const room = s.tables.rooms![i.roomInstanceId as string];
+      return {
+        visitId: v.id as string, address: p.addressLine1 as string, postcode: p.postcode as string,
+        room: (room?.label as string) ?? 'MISCELLANEOUS', item: i.label as string, comment: (i.comment as string) ?? null,
+        officerName: userName(s, v.officerId), at: (v.updatedAt as string) ?? new Date().toISOString(),
+      };
+    }).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 50),
+    unsigned: issuedIn.filter((r) => !landlordSigned(r.visitId)).map((r) => {
+      const v = s.tables.visits![r.visitId as string]!;
+      return { reportId: r.id as string, visitId: v.id as string, reportNumber: r.reportNumber as string, address: String(s.properties[v.propertyId as string]!.addressLine1), issuedAt: r.issuedAt as string };
+    }).slice(0, 50),
   };
 }
+
+function reportSummaries(s: State, q: string, from?: string | null, to?: string | null, scheme?: string | null): ReportSummary[] {
+  const needle = q.trim().toLowerCase();
+  return Object.values(s.reports).map((r) => {
+    const v = s.tables.visits![r.visitId as string]!;
+    const p = s.properties[v.propertyId as string]!;
+    const b = bundle(s, v.id as string)!;
+    return {
+      reportId: r.id as string, reportNumber: r.reportNumber as string, visitId: v.id as string, propertyId: p.id as string,
+      address: p.addressLine1 as string, postcode: p.postcode as string, schemeCode: v.schemeCode as ReportSummary['schemeCode'],
+      visitType: v.visitType as ReportSummary['visitType'], officerName: userName(s, v.officerId), issuedAt: r.issuedAt as string,
+      pdfReady: !!r.pdfReady, defects: summary(s, b).defects,
+      landlordSigned: b.signatures.some((x) => x.role === 'landlord_agent'),
+      _hay: `${p.addressLine1} ${p.postcode} ${p.uprn ?? ''} ${r.reportNumber}`.toLowerCase(),
+    };
+  })
+    .filter((r) => (!needle || r._hay.includes(needle)) && (!from || isoDate(new Date(r.issuedAt)) >= from) && (!to || isoDate(new Date(r.issuedAt)) <= to) && (!scheme || r.schemeCode === scheme))
+    .map(({ _hay: _h, ...r }) => r)
+    .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
+}
+
+function reference(s: State): ReferenceData {
+  return {
+    formVersion: { id: FORM_VERSION_ID, version: 1, status: 'published', definition: FORM, publishedAt: '2026-11-15T09:00:00Z' },
+    schemes: s.schemes as ReferenceData['schemes'],
+    phrases: s.phrases,
+    officers: s.users.filter((u) => u.active).map(({ id, name, role }) => ({ id, name, role })),
+  };
+}
+
+interface PcRow { district: string; ward: string; town: string; lat: number; lng: number; addresses?: [string, string][] }
+const K = 'Kingston upon Thames';
+const POSTCODES: Record<string, PcRow> = {
+  'KT1 1AA': { district: K, ward: 'Kingston Town', town: K, lat: 51.4085, lng: -0.3064 },
+  'KT1 1BD': { district: K, ward: 'Kingston Town', town: K, lat: 51.4101, lng: -0.3046 },
+  'KT1 2BZ': { district: K, ward: 'Grove', town: K, lat: 51.4019, lng: -0.3043 },
+  'KT1 2EE': { district: K, ward: 'Grove', town: K, lat: 51.4002, lng: -0.3021 },
+  'KT1 3JW': { district: K, ward: 'Norbiton', town: K, lat: 51.4117, lng: -0.2853 },
+  'KT2 5TE': { district: K, ward: 'Canbury Gardens', town: K, lat: 51.4205, lng: -0.3002 },
+  'KT2 6EU': {
+    district: K, ward: 'Canbury', town: K, lat: 51.4171, lng: -0.2951,
+    addresses: [['12 Acre Road', '128001234'], ['14 Acre Road', '128001236'], ['Flat A, 16 Acre Road', '128001238']],
+  },
+  'KT2 6PY': { district: K, ward: 'Canbury', town: K, lat: 51.4188, lng: -0.2977 },
+  'KT2 7AH': { district: K, ward: 'Coombe Hill', town: K, lat: 51.4176, lng: -0.2704 },
+  'KT3 3HE': { district: K, ward: 'New Malden Village', town: 'New Malden', lat: 51.4019, lng: -0.2561 },
+  'KT5 8BD': { district: K, ward: 'Berrylands', town: 'Surbiton', lat: 51.3956, lng: -0.2895 },
+  'KT5 9AA': { district: K, ward: 'Tolworth', town: 'Surbiton', lat: 51.3803, lng: -0.2846 },
+  'KT6 4TP': { district: K, ward: "St Mark's & Seething Wells", town: 'Surbiton', lat: 51.3931, lng: -0.3021 },
+  'KT6 6EX': { district: K, ward: 'Alexandra', town: 'Surbiton', lat: 51.3876, lng: -0.2953 },
+  'KT6 7QZ': { district: K, ward: 'Tolworth', town: 'Surbiton', lat: 51.3779, lng: -0.2902 },
+  'KT4 8AA': { district: 'Sutton', ward: 'Worcester Park North', town: 'Worcester Park', lat: 51.3794, lng: -0.2425 },
+  'SW1A 1AA': { district: 'Westminster', ward: "St James's", town: 'London', lat: 51.501, lng: -0.1416 },
+};
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 const err = (status: number, code: string, message: string, extra: Record<string, unknown> = {}) => json({ error: { code, message }, ...extra }, status);
 
 async function handle(s: State, method: string, path: string, url: URL, init?: RequestInit): Promise<Response> {
   const body = () => (typeof init?.body === 'string' ? JSON.parse(init.body) : undefined);
-  const me = USERS.find((u) => u.id === s.me) ?? null;
+  const me = s.users.find((u) => u.id === s.me && u.active) ?? null;
+  const q = (k: string) => url.searchParams.get(k);
   let m: RegExpMatchArray | null;
 
-  if (method === 'GET' && path === '/auth/dev-users') return json({ users: USERS });
-  if (method === 'POST' && path === '/auth/dev-login') { s.me = body().userId; return json({ user: USERS.find((u) => u.id === s.me) }); }
+  if (method === 'GET' && path === '/health') return json({ ok: true, db: true });
+  if (method === 'GET' && path === '/auth/dev-users') return json({ users: s.users.filter((u) => u.active) });
+  if (method === 'POST' && path === '/auth/dev-login') { s.me = body().userId; return json({ user: s.users.find((u) => u.id === s.me) }); }
   if (method === 'POST' && path === '/auth/login') {
-    const u = USERS.find((x) => x.email === body().email.toLowerCase());
+    const u = s.users.find((x) => x.email === String(body().email).toLowerCase() && x.active);
     if (!u) return err(401, 'UNAUTHORIZED', 'Invalid credentials');
     s.me = u.id;
     return json({ user: u });
   }
   if (!me) return err(401, 'UNAUTHORIZED', 'Sign in');
+  const isManager = me.role === 'manager' || me.role === 'admin';
+  const isAdmin = me.role === 'admin';
   if (method === 'POST' && path === '/auth/logout') { s.me = null; return new Response(null, { status: 204 }); }
   if (method === 'GET' && path === '/auth/me') return json({ user: me });
-  if (method === 'GET' && path === '/reference') return json(reference());
+  if (method === 'GET' && path === '/reference') return json(reference(s));
 
+  // address lookup (postcodes.io-like; KT2 6EU answers like OS Places with UPRNs)
+  if (method === 'GET' && path === '/address/autocomplete') {
+    const needle = (q('q') ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (needle.length < 2) return err(400, 'VALIDATION', 'q must be 2–8 characters');
+    return json({ postcodes: Object.keys(POSTCODES).filter((pc) => pc.replace(' ', '').startsWith(needle)).slice(0, 10) });
+  }
+  if ((m = path.match(/^\/address\/postcode\/(.+)$/)) && method === 'GET') {
+    const pc = normalisePostcode(decodeURIComponent(m[1]!));
+    if (!pc) return err(400, 'INVALID_POSTCODE', 'That is not a valid UK postcode');
+    const hit = POSTCODES[pc];
+    if (!hit) return err(404, 'POSTCODE_NOT_FOUND', 'Postcode not found');
+    const lookup: PostcodeLookup = {
+      provider: hit.addresses ? 'os_places' : 'postcodes_io', postcode: pc, district: hit.district, ward: hit.ward, town: hit.town,
+      lat: hit.lat, lng: hit.lng, outsideKingston: hit.district !== 'Kingston upon Thames',
+      addresses: (hit.addresses ?? []).map(([line1, uprn]) => ({ uprn, addressLine1: line1, addressLine2: null, town: hit.town, postcode: pc, label: `${line1}, ${hit.town}, ${pc}` })),
+    };
+    return json(lookup);
+  }
+
+  // properties
   if (method === 'GET' && path === '/properties') {
-    const q = (url.searchParams.get('q') ?? '').toLowerCase();
+    const needle = (q('q') ?? '').toLowerCase();
     const properties = Object.values(s.properties)
-      .filter((p) => `${p.addressLine1} ${p.postcode} ${p.uprn ?? ''}`.toLowerCase().includes(q))
+      .filter((p) => `${p.addressLine1} ${p.postcode} ${p.uprn ?? ''}`.toLowerCase().includes(needle))
       .map((p) => ({ ...p, landlord: p.landlordId ? s.landlords[p.landlordId as string] ?? null : null }));
     return json({ properties });
   }
@@ -163,21 +440,56 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
     s.properties[p.id] = p;
     return json({ property: p }, 201);
   }
+  if ((m = path.match(/^\/properties\/([^/]+)\/visits$/)) && method === 'GET') {
+    const visits = Object.values(s.tables.visits!).filter((v) => v.propertyId === m![1])
+      .map((v) => summary(s, bundle(s, v.id as string)!)).sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? ''));
+    return json({ visits });
+  }
 
+  // visits
   if (method === 'GET' && path === '/visits') {
-    const all = Object.keys(s.tables.visits!).map((id) => bundle(s, id)!).filter((b) => me.role !== 'officer' || b.visit.officerId === me.id);
-    const status = url.searchParams.get('status');
-    return json({ visits: all.filter((b) => !status || b.visit.status === status).map((b) => summary(s, b)) });
+    const [status, officerId, from, to] = [q('status'), q('officerId'), q('from'), q('to')];
+    const all = Object.values(s.tables.visits!)
+      .filter((v) => (isManager ? !officerId || v.officerId === officerId : v.officerId === me.id))
+      .filter((v) => !status || v.status === status)
+      .filter((v) => (!from && !to) || inRange(v.scheduledAt, from ?? '0000-00-00', to ?? '9999-99-99'))
+      .map((v) => summary(s, bundle(s, v.id as string)!))
+      .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''));
+    return json({ visits: all });
   }
   if (method === 'POST' && path === '/visits') {
     const req = body() as CreateVisitRequest;
     if (s.tables.visits![req.id]) return json(bundle(s, req.id), 200); // idempotent on the device id
-    createVisit(s, buildFormDefinition(), req, me.id);
+    if (req.officerId && req.officerId !== me.id && !isManager) return err(403, 'FORBIDDEN', 'Only managers can schedule for an officer');
+    const officerId = req.officerId ?? me.id;
+    createVisit(s, req, officerId, req.officerId && req.officerId !== me.id ? 'scheduled' : 'in_progress');
+    addAudit(s, 'visit', req.id, 'created', null, { officer: userName(s, officerId), scheduledAt: req.scheduledAt ?? null }, me.name);
     return json(bundle(s, req.id), 201);
   }
   if ((m = path.match(/^\/visits\/([^/]+)$/)) && method === 'GET') {
     const b = bundle(s, m[1]!);
     return b ? json(b) : err(404, 'NOT_FOUND', 'No such visit');
+  }
+  if ((m = path.match(/^\/visits\/([^/]+)\/assign$/)) && method === 'PATCH') {
+    if (!isManager) return err(403, 'FORBIDDEN', 'Managers only');
+    const v = s.tables.visits![m[1]!];
+    if (!v) return err(404, 'NOT_FOUND', 'No such visit');
+    if (v.status === 'issued') return err(409, 'VISIT_ISSUED', 'An issued visit cannot be reassigned');
+    const { officerId, scheduledAt } = body();
+    const officer = s.users.find((u) => u.id === officerId && u.role === 'officer' && u.active);
+    if (!officer) return err(400, 'VALIDATION', 'Choose an active officer');
+    addAudit(s, 'visit', v.id as string, 'officerId', userName(s, v.officerId), officer.name, me.name);
+    Object.assign(v, { officerId, scheduledAt, updatedAt: new Date().toISOString(), updatedBy: me.id });
+    return json({ visit: v });
+  }
+  if ((m = path.match(/^\/visits\/([^/]+)\/preview$/)) && method === 'GET') {
+    const b = bundle(s, m[1]!);
+    if (!b) return err(404, 'NOT_FOUND', 'No such visit');
+    const html = renderReportHtml({
+      bundle: b, form: FORM, schemeName: s.schemes.find((x) => x.code === b.visit.schemeCode)?.name ?? b.visit.schemeCode,
+      officerName: userName(s, b.visit.officerId), mode: b.report ? 'final' : 'draft', photoSrc: () => '',
+    });
+    return new Response(html, { headers: { 'content-type': 'text/html' } });
   }
   if ((m = path.match(/^\/visits\/([^/]+)\/issue$/)) && method === 'POST') {
     const b = bundle(s, m[1]!);
@@ -195,7 +507,20 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
     s.reports[report.id] = report;
     for (const sig of b.signatures) Object.assign(s.tables.signatures![sig.id]!, { reportId: report.id });
     Object.assign(s.tables.visits![b.visit.id]!, { status: 'issued', reportNumber: report.reportNumber, completedAt: report.issuedAt, updatedAt: report.issuedAt });
+    addAudit(s, 'visit', b.visit.id, 'status', b.visit.status, 'issued', me.name);
     return json({ report }, 201);
+  }
+
+  // reports
+  if (method === 'GET' && path === '/manage/reports') {
+    if (!isManager) return err(403, 'FORBIDDEN', 'Managers only');
+    return json({ reports: reportSummaries(s, q('q') ?? '', q('from'), q('to'), q('scheme')) });
+  }
+  if (method === 'GET' && path === '/manage/overview') {
+    if (!isManager) return err(403, 'FORBIDDEN', 'Managers only');
+    const mon = monday();
+    const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+    return json(overview(s, q('from') ?? isoDate(mon), q('to') ?? isoDate(sun)));
   }
   if ((m = path.match(/^\/reports\/([^/]+)$/)) && method === 'GET') {
     const report = s.reports[m[1]!];
@@ -207,12 +532,102 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
     const b = report && bundle(s, report.visitId as string);
     if (!b) return err(404, 'NOT_FOUND', 'No such report');
     const html = renderReportHtml({
-      bundle: b, form: buildFormDefinition(), schemeName: SCHEMES.find((x) => x.code === b.visit.schemeCode)!.name,
-      officerName: USERS.find((u) => u.id === b.visit.officerId)?.name ?? '', mode: 'final', photoSrc: () => '',
+      bundle: b, form: FORM, schemeName: s.schemes.find((x) => x.code === b.visit.schemeCode)?.name ?? '',
+      officerName: userName(s, b.visit.officerId), mode: 'final', photoSrc: () => '',
     });
     return new Response(html, { headers: { 'content-type': 'text/html' } });
   }
 
+  // admin
+  if (path.startsWith('/users') || path.startsWith('/admin')) {
+    if (!isAdmin) return err(403, 'FORBIDDEN', 'Admins only');
+    if (method === 'GET' && path === '/users') return json({ users: s.users });
+    if (method === 'POST' && path === '/users') {
+      const req = body() as CreateUserRequest;
+      if (s.users.some((u) => u.email === req.email.toLowerCase())) return err(409, 'EMAIL_TAKEN', 'A user with that email already exists.');
+      const user: User = { id: uuidv7(), email: req.email.toLowerCase(), name: req.name, role: req.role, active: true };
+      s.users.push(user);
+      addAudit(s, 'user', user.id, 'created', null, { email: user.email, role: user.role }, me.name);
+      return json({ user }, 201);
+    }
+    if ((m = path.match(/^\/users\/([^/]+)$/)) && method === 'PATCH') {
+      const u = s.users.find((x) => x.id === m![1]);
+      if (!u) return err(404, 'NOT_FOUND', 'No such user');
+      const req = body() as UpdateUserRequest;
+      const losesAdmin = u.role === 'admin' && ((req.role && req.role !== 'admin') || req.active === false);
+      if (u.id === me.id && losesAdmin) return err(409, 'SELF_LOCKOUT', 'You cannot remove your own admin access or deactivate yourself.');
+      if (losesAdmin && s.users.filter((x) => x.role === 'admin' && x.active).length <= 1) return err(409, 'LAST_ADMIN', 'At least one active admin is required.');
+      for (const [k, val] of Object.entries(req)) addAudit(s, 'user', u.id, k, (u as Record<string, unknown>)[k], val, me.name);
+      Object.assign(u, req);
+      return json({ user: u });
+    }
+    if ((m = path.match(/^\/users\/([^/]+)\/reset-password$/)) && method === 'POST') {
+      const u = s.users.find((x) => x.id === m![1]);
+      if (!u) return err(404, 'NOT_FOUND', 'No such user');
+      if (String(body()?.password ?? '').length < 12) return err(400, 'VALIDATION', 'Password must be at least 12 characters.');
+      addAudit(s, 'user', u.id, 'password', null, '(reset)', me.name);
+      return new Response(null, { status: 204 });
+    }
+    if (method === 'GET' && path === '/admin/phrases') return json({ phrases: s.phrases });
+    if (method === 'POST' && path === '/admin/phrases') {
+      const req = body() as CreatePhraseRequest;
+      const phrase: DescriptionPhrase = {
+        id: uuidv7(), itemCode: req.itemCode, phrase: req.phrase,
+        sortOrder: req.sortOrder ?? s.phrases.filter((p) => p.itemCode === req.itemCode).length,
+      };
+      s.phrases.push(phrase);
+      addAudit(s, 'description_phrase', phrase.id, 'phrase', null, phrase.phrase, me.name);
+      return json({ phrase }, 201);
+    }
+    if ((m = path.match(/^\/admin\/phrases\/([^/]+)$/)) && method === 'DELETE') {
+      const p = s.phrases.find((x) => x.id === m![1]);
+      s.phrases = s.phrases.filter((x) => x.id !== m![1]);
+      if (p) addAudit(s, 'description_phrase', p.id, 'phrase', p.phrase, null, me.name);
+      return new Response(null, { status: 204 });
+    }
+    if ((m = path.match(/^\/admin\/schemes\/([^/]+)$/)) && method === 'PATCH') {
+      const sc = s.schemes.find((x) => x.code === m![1]);
+      if (!sc) return err(404, 'NOT_FOUND', 'No such scheme');
+      const name = String(body()?.name ?? '').trim();
+      if (name.length < 3) return err(400, 'VALIDATION', 'Name must be at least 3 characters.');
+      addAudit(s, 'scheme', FORM_VERSION_ID, `${sc.code}.name`, sc.name, name, me.name);
+      sc.name = name;
+      return json({ scheme: sc });
+    }
+    if (method === 'GET' && path === '/admin/form') {
+      const summaryOut: FormSummary = {
+        formVersionId: FORM_VERSION_ID, version: 1, publishedAt: '2026-11-15T09:00:00Z', source: FORM.source,
+        rooms: FORM.rooms.map((r) => ({ code: r.code, label: r.label, items: r.items.length })),
+        totalItems: FORM.rooms.reduce((n, r) => n + r.items.length, 0),
+        conditionOptions: FORM.conditionOptions.map(({ code, label, definition }) => ({ code, label, definition })),
+        itemColumns: FORM.itemColumns,
+      };
+      return json(summaryOut);
+    }
+    if (method === 'GET' && path === '/admin/system') {
+      const visits = Object.values(s.tables.visits!);
+      const byStatus = { scheduled: 0, in_progress: 0, completed: 0, issued: 0, cancelled: 0 } as SystemStatus['visitsByStatus'];
+      for (const v of visits) byStatus[v.status as keyof typeof byStatus]++;
+      const out: SystemStatus = {
+        db: true, serverTime: new Date().toISOString(), uptimeSeconds: Math.round((Date.now() - STARTED_AT) / 1000) + 3 * 86400 + 4 * 3600,
+        counts: {
+          users: s.users.length, properties: Object.keys(s.properties).length, visits: visits.length,
+          reports: Object.keys(s.reports).length, photos: Object.keys(s.tables.photos!).length,
+        },
+        visitsByStatus: byStatus,
+        jobs: { queued: 0, running: 1, failed: 1 },
+        recentFailedJobs: [{ id: 87, kind: 'render_pdf', lastError: 'Chromium timed out after 30 s (retried 3×)', at: new Date(Date.now() - 26 * 3600_000).toISOString() }],
+      };
+      return json(out);
+    }
+    if (method === 'GET' && path === '/admin/audit') {
+      const entity = q('entity');
+      const limit = Math.min(200, Number(q('limit') ?? 50));
+      return json({ events: s.audit.filter((e) => !entity || e.entity === entity).slice(0, limit) });
+    }
+  }
+
+  // sync
   if (method === 'POST' && path === '/sync/push') {
     const req = body() as PushRequest;
     const results = req.mutations.map((mu: Mutation) => {
@@ -221,6 +636,7 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
       const visitId = mu.entity === 'visit' ? mu.id : (mu.data.visitId as string);
       if (s.tables.visits![visitId]?.status === 'issued') return { mutationId: mu.mutationId, status: 'rejected' as const, error: 'Visit is issued' };
       const { imageDataUrl: _img, ...data } = mu.data; // write-only on the server
+      for (const [k, v] of Object.entries(data)) if (k !== 'visitId' && table[mu.id]?.[k] !== v && ['condition', 'status', 'comment'].includes(k)) addAudit(s, mu.entity, mu.id, k, table[mu.id]?.[k] ?? null, v, me.name, mu.clientUpdatedAt);
       table[mu.id] = { ...(table[mu.id] ?? {}), ...data, id: mu.id, updatedAt: mu.clientUpdatedAt, updatedBy: me.id };
       if (mu.entity !== 'visit' && s.tables.visits![visitId]) s.tables.visits![visitId]!.updatedAt = mu.clientUpdatedAt;
       s.processed.push(mu.mutationId);
@@ -238,17 +654,24 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
   return err(404, 'NOT_FOUND', `Mock API has no ${method} ${path}`);
 }
 
-export function installMockApi(): void {
+/** Answer `/api/*` in the browser. `delayMs` simulates latency (tests pass 0). */
+export function installMockApi(opts: { delayMs?: number } = {}): void {
   const state = load();
-  const real = globalThis.fetch.bind(globalThis);
+  const delay = opts.delayMs ?? 120;
+  const real = globalThis.fetch?.bind(globalThis);
   setFetch(async (input, init) => {
     const url = new URL(input, location.origin);
     if (!url.pathname.startsWith('/api/')) return real(input, init);
     if (!navigator.onLine) throw new TypeError('Failed to fetch (mock offline)');
-    await new Promise((r) => setTimeout(r, 120));
+    if (delay) await new Promise((r) => setTimeout(r, delay));
     const res = await handle(state, (init?.method ?? 'GET').toUpperCase(), url.pathname.slice(4), url, init);
     save(state);
     return res;
   });
-  console.info('%c[mock api] VITE_MOCK_API=1 — requests to /api are answered in the browser', 'color:#17708c');
+  console.info('%c[mock api] VITE_MOCK_API=1 — requests to /api are answered in the browser', 'color:#0f5e6e');
+}
+
+/** Tests: forget persisted mock state. */
+export function resetMockApi(): void {
+  try { localStorage.removeItem(KEY); } catch { /* ignore */ }
 }

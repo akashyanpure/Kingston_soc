@@ -3,8 +3,8 @@ import type { User } from '@soc/shared';
 import { KINGSTON_CREST, LOGO_ALT } from '@soc/report';
 import { ThamesLight } from '../components/ThamesLight';
 import { Icon } from '../components/ui';
-import { HttpError, NetworkError } from '../lib/api';
-import { devLogin, fetchDevUsers, login } from '../lib/session';
+import { HttpError, NetworkError, isServiceOffline } from '../lib/api';
+import { devLogin, fetchDevUsers, login, serviceSwitchedOff } from '../lib/session';
 
 const initials = (name: string) => name.split(/[\s.]+/).filter(Boolean).map((p) => p[0]!.toUpperCase()).slice(0, 2).join('');
 
@@ -14,8 +14,12 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [devUsers, setDevUsers] = useState<User[] | null>(null);
+  const [switchedOff, setSwitchedOff] = useState(false);
 
-  useEffect(() => { void fetchDevUsers().then(setDevUsers); }, []);
+  useEffect(() => {
+    void fetchDevUsers().then(setDevUsers);
+    void serviceSwitchedOff().then(setSwitchedOff);
+  }, []);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -23,6 +27,7 @@ export function Login() {
     try {
       await fn(); // LoginRoute redirects as soon as the session exists
     } catch (e) {
+      if (isServiceOffline(e)) { setSwitchedOff(true); return; }
       setError(
         e instanceof NetworkError ? 'No connection. You need signal the first time you sign in on this phone.'
           : e instanceof HttpError && e.status === 401 ? 'Email or password not recognised.'
@@ -49,6 +54,11 @@ export function Login() {
         <h1 className="login__title">Schedule of <em>Condition</em></h1>
         <p className="login__lede">Inspect, grade and photograph on site. Everything saves on this phone and uploads itself when there is signal.</p>
 
+        {switchedOff && (
+          <div className="notice notice--ivory" role="status">
+            The service is switched off right now. Ask your administrator to start it.
+          </div>
+        )}
         <form onSubmit={submit} noValidate className="card login__card">
           <div className="field">
             <label className="field__label" htmlFor="email">Work email</label>

@@ -20,6 +20,23 @@ const PATHS = {
   trash: 'M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13',
   alert: 'M12 4l9 16H3zM12 10v4M12 17v.5',
   door: 'M6 21V4a1 1 0 011-1h10a1 1 0 011 1v17M3 21h18M14 12h.01',
+  calendar: 'M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1zM4 10h16M8 3v4M16 3v4',
+  archive: 'M4 5h16v4H4zM5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M10 13h4',
+  users: 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2.5 20a6.5 6.5 0 0113 0M16 4.5a3.5 3.5 0 010 6.5M18.5 14a6 6 0 013 6',
+  book: 'M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11',
+  layers: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5',
+  activity: 'M3 12h4l3-8 4 16 3-8h4',
+  menu: 'M4 7h16M4 12h16M4 17h16',
+  logout: 'M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H4',
+  search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
+  clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
+  copy: 'M9 9h10v11H9zM5 15H4V4h11v1',
+  history: 'M3 12a9 9 0 103-6.7L3 8M3 3v5h5M12 7v5l3 2',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
+  key: 'M14 10a4 4 0 10-3.5 4L8 16.5V19H5.5v-2.5L10 12M17 7h.01',
+  edit: 'M4 20h4L18.5 9.5a2.1 2.1 0 00-3-3L5 17v3zM13.5 6.5l3 3',
+  external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5',
+  arrowRight: 'M5 12h14M13 6l6 6-6 6',
 } as const;
 export type IconName = keyof typeof PATHS;
 
