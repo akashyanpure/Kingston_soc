@@ -232,7 +232,7 @@ export async function listVisits(db: Db, filter: ListVisitsFilter = {}): Promise
   const rows = await db
     .select({
       id: visits.id, schemeCode: visits.schemeCode, visitType: visits.visitType, status: visits.status,
-      scheduledAt: visits.scheduledAt, reportNumber: visits.reportNumber, officerId: visits.officerId, updatedAt: visits.updatedAt,
+      scheduledAt: visits.scheduledAt, reportNumber: visits.reportNumber, officerId: visits.officerId, updatedAt: visits.updatedAt, propertyId: visits.propertyId,
       addressLine1: properties.addressLine1, addressLine2: properties.addressLine2, postcode: properties.postcode,
       officerName: users.name,
       itemsTotal: sql<number>`coalesce(${counts.itemsTotal}, 0)`.mapWith(Number),

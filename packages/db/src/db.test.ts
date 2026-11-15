@@ -7,6 +7,7 @@ import { createTestDb, type Db, type TestDbHandle } from './client.js';
 import { isImmutableError, isUniqueViolation } from './errors.js';
 import { claimNextJob, completeJob, enqueueJob, failJob } from './queries/jobs.js';
 import { allocateReportNumber } from './queries/reports.js';
+import { createSigningLink, findSigningLinkByTokenHash, listDisputes, listSigningLinks, signingLinkStatus } from './queries/signing.js';
 import { createVisitFromForm, ensureRoomItems, getPublishedFormVersion, listVisits, loadVisitBundle } from './queries/visits.js';
 import { DEFAULT_ROOM_PLANS } from './room-plans.js';
 import * as s from './schema.js';
@@ -285,5 +286,61 @@ describe('jobs queue', () => {
     expect(again?.attempts).toBe(2);
     expect(await failJob(db, again!.id, 'boom again', { maxAttempts: 2 })).toBe('failed');
     expect(await claimNextJob(db)).toBeNull();
+  });
+});
+
+describe('signing links + disputes', () => {
+  it('constraints, unique token hash, status derivation, writes allowed after issue', async () => {
+    const id = await newVisit();
+    const reportId = await issue(id, 'SOC-2026-9004');
+    const hash = (n: string) => `hash-${n}-${reportId}`;
+    const base = { reportId, createdBy: officerId };
+
+    const pending = await createSigningLink(db, { ...base, role: 'landlord_agent', tokenHash: hash('a'), recipientName: 'L. Lord', recipientEmail: 'l@example.com' });
+    expect(pending.expiresAt.getTime() - Date.now()).toBeGreaterThan(13 * 86_400_000);
+    expect(await findSigningLinkByTokenHash(db, hash('a'))).toMatchObject({ id: pending.id });
+    expect(await findSigningLinkByTokenHash(db, 'nope')).toBeNull();
+
+    // unique token hash; officer role not allowed
+    const dupErr = await createSigningLink(db, { ...base, role: 'tenant_check_in', tokenHash: hash('a') }).then(() => null, (e: unknown) => e);
+    expect(isUniqueViolation(dupErr)).toBe(true);
+    const roleErr = await createSigningLink(db, { ...base, role: 'officer' as never, tokenHash: hash('o') }).then(() => null, (e: unknown) => e);
+    expect(roleErr).toBeTruthy();
+
+    const expired = await createSigningLink(db, { ...base, role: 'tenant_check_in', tokenHash: hash('e'), expiresAt: new Date(Date.now() - 1000) });
+    const revoked = await createSigningLink(db, { ...base, role: 'tenant_check_out', tokenHash: hash('r') });
+    await db.update(s.signingLinks).set({ revokedAt: new Date() }).where(eq(s.signingLinks.id, revoked.id));
+
+    // link signing after issue: INSERT signature (method 'link') + UPDATE the link
+    const signed = await createSigningLink(db, { ...base, role: 'tenant_check_in', tokenHash: hash('s') });
+    const sigId = uuidv7();
+    await db.transaction(async (tx) => {
+      await tx.insert(s.signatures).values({ id: sigId, visitId: id, reportId, role: 'tenant_check_in', name: 'T. Enant', method: 'link', reportSha256: 'e'.repeat(64) });
+      await tx.update(s.signingLinks).set({ openedAt: new Date(), signedAt: new Date(), signatureId: sigId }).where(eq(s.signingLinks.id, signed.id));
+    });
+
+    // dispute on an item of the issued visit, then resolve it
+    const [item] = await db.select().from(s.itemRecords).where(eq(s.itemRecords.visitId, id)).orderBy(s.itemRecords.sortOrder).limit(1);
+    const disputeId = uuidv7();
+    await db.insert(s.disputes).values({ id: disputeId, reportId, signingLinkId: pending.id, itemRecordId: item!.id, comment: 'Gate was already broken' });
+    await db.update(s.disputes).set({ resolvedAt: new Date(), resolvedBy: officerId }).where(eq(s.disputes.id, disputeId));
+    const badItem = await db.insert(s.disputes).values({ id: uuidv7(), reportId, signingLinkId: pending.id, itemRecordId: uuidv7(), comment: 'x' }).then(() => null, (e: unknown) => e);
+    expect(badItem).toBeTruthy();
+
+    const links = await listSigningLinks(db, reportId);
+    expect(Object.fromEntries(links.map((l) => [l.id, l.status]))).toEqual({
+      [pending.id]: 'pending', [expired.id]: 'expired', [revoked.id]: 'revoked', [signed.id]: 'signed',
+    });
+    expect(links.find((l) => l.id === pending.id)!.disputes).toBe(1);
+    expect(links.find((l) => l.id === signed.id)!.openedAt).not.toBeNull();
+    expect(signingLinkStatus({ ...pending, signedAt: null, revokedAt: null }, new Date(pending.expiresAt.getTime() + 1))).toBe('expired');
+
+    const ds = await listDisputes(db, reportId);
+    expect(ds).toHaveLength(1);
+    expect(ds[0]).toMatchObject({ id: disputeId, signingLinkId: pending.id, itemRecordId: item!.id, room: 'FRONT GARDEN', item: item!.label, comment: 'Gate was already broken' });
+    expect(ds[0]!.resolvedAt).not.toBeNull();
+
+    const bundle = await loadVisitBundle(db, id);
+    expect(bundle!.signatures.map((x) => x.method)).toEqual(['link']);
   });
 });

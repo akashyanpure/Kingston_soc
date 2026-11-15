@@ -392,3 +392,44 @@ export const jobs = pgTable(
     index('jobs_status_run_after_idx').on(t.status, t.runAfter),
   ],
 );
+
+// ── Signing links (packages/shared/src/signing.ts) — server-created, after issue ─────
+/** Secure expiring link for an absent landlord/tenant to sign the ISSUED report or dispute items. */
+export const signingLinks = pgTable(
+  'signing_links',
+  {
+    id: uuid().primaryKey(),
+    reportId: uuid().notNull().references(() => reports.id),
+    role: signatureRolesEnum().notNull(), // LINK_SIGNER_ROLES only (check below)
+    tokenHash: text().notNull().unique('signing_links_token_hash_uq'), // sha256 (base64url) of the token; raw token never stored
+    recipientName: text(),
+    recipientEmail: text(),
+    createdBy: uuid().notNull().references(() => users.id),
+    createdAt: createdAt(),
+    expiresAt: tstz().notNull(),
+    openedAt: tstz(),
+    signedAt: tstz(),
+    revokedAt: tstz(),
+    signatureId: uuid().references(() => signatures.id),
+  },
+  (t) => [
+    check('signing_links_role_chk', sql`${t.role} in ('landlord_agent','tenant_check_in','tenant_check_out')`),
+    index('signing_links_report_idx').on(t.reportId),
+  ],
+);
+
+/** An item disputed by a link signer. */
+export const disputes = pgTable(
+  'disputes',
+  {
+    id: uuid().primaryKey(),
+    reportId: uuid().notNull().references(() => reports.id),
+    signingLinkId: uuid().notNull().references(() => signingLinks.id),
+    itemRecordId: uuid().notNull().references(() => itemRecords.id),
+    comment: text().notNull(),
+    createdAt: createdAt(),
+    resolvedAt: tstz(),
+    resolvedBy: uuid().references(() => users.id),
+  },
+  (t) => [index('disputes_report_idx').on(t.reportId)],
+);
