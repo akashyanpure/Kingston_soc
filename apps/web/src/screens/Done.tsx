@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import type { Report, Signature } from '@soc/shared';
 import { api } from '../lib/api';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { SendSigningLinkDialog } from '../components/signing';
 import { ThamesLight } from '../components/ThamesLight';
 import { Icon, ScreenSkeleton } from '../components/ui';
 import { db } from '../lib/db';
@@ -22,6 +23,7 @@ export function Done() {
   );
 
   // The PDF renders in the background: poll the report until its PDF (and SHA-256) exist.
+  const [linkOpen, setLinkOpen] = useState(false);
   const reportId = data?.report?.id;
   const ready = !!data?.report?.pdfReady && !!data?.report?.sha256;
   useEffect(() => {
@@ -64,6 +66,7 @@ export function Done() {
     );
   }
 
+  const landlordSigned = signatures.some((s) => s.role === 'landlord_agent');
   const roleLabel = (role: string) => form?.signatureRoles.find((r) => r.role === role)?.label ?? role;
   const photos = data.photos.filter((p) => !p.deletedAt).length;
   return (
@@ -102,6 +105,13 @@ export function Done() {
           {report.sha256 && <p className="mono muted" style={{ wordBreak: 'break-all', margin: '12px 0 0' }}>SHA-256 {report.sha256}</p>}
         </div>
         {!ready && <p className="small muted" role="status">Generating the PDF…</p>}
+        {online && (
+          <div className={`notice${landlordSigned ? ' notice--grey' : ' notice--brass'}`} style={{ alignItems: 'center' }}>
+            <span style={{ flex: 1 }}>{landlordSigned ? 'Need another signature (e.g. the tenant)?' : 'The landlord / agent hasn’t signed yet.'} Send them a secure signing link.</span>
+            <button type="button" className="btn btn--sm" onClick={() => setLinkOpen(true)}><Icon name="pen" size={16} /> Send signing link</button>
+          </div>
+        )}
+        <SendSigningLinkDialog open={linkOpen} reportId={report.id} visitId={visit.id} reportNumber={report.reportNumber} onClose={() => setLinkOpen(false)} />
 
         <div className="btn-grid" style={{ marginTop: 16 }}>
           <Link to="/visits" className="btn btn--lg">Back to visits</Link>

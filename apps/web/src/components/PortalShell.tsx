@@ -9,12 +9,14 @@ import { Icon, type IconName } from './ui';
 interface NavItem { to: string; label: string; icon: IconName; end?: boolean }
 
 const MANAGE: NavItem[] = [
-  { to: '/manage', label: 'Dashboard', icon: 'grid', end: true },
+  { to: '/manage', label: 'Inventory operations', icon: 'grid', end: true },
   { to: '/manage/visits', label: 'Schedule', icon: 'calendar' },
   { to: '/manage/reports', label: 'Reports', icon: 'archive' },
+  { to: '/manage/account', label: 'Account', icon: 'user' },
 ];
 const ADMIN: NavItem[] = [
-  { to: '/admin', label: 'Users', icon: 'users', end: true },
+  { to: '/admin', label: 'Administration', icon: 'grid', end: true },
+  { to: '/admin/users', label: 'Users', icon: 'users' },
   { to: '/admin/library', label: 'Description library', icon: 'book' },
   { to: '/admin/form', label: 'Form & schemes', icon: 'layers' },
   { to: '/admin/system', label: 'System', icon: 'activity' },
@@ -80,15 +82,11 @@ export function PortalShell() {
           <img src={KINGSTON_CREST} alt="" />
           <div>
             <div className="side__title">Kingston <em>SOC</em></div>
-            <div className="side__sub">{isAdmin ? 'Administration' : 'Operations'}</div>
+            <div className="side__sub">{isAdmin ? 'Administration' : 'Inventory operations'}</div>
           </div>
         </div>
-        {isAdmin && group('Administration', ADMIN)}
-        {group(isAdmin ? 'Operations dashboard' : 'Operations', MANAGE)}
-        <div className="side__group">
-          <div className="side__heading">Field</div>
-          <NavLink to="/visits" className="side__link"><Icon name="home" size={19} /> Officer app</NavLink>
-        </div>
+        {isAdmin ? group('Administration', ADMIN) : group('Operations', MANAGE)}
+        {isAdmin && group('Oversight', [{ to: '/manage', label: 'Inventory operations', icon: 'activity', end: true }])}
         <div className="side__user">
           <span className="persona__avatar" aria-hidden="true">{initials(session.name)}</span>
           <span style={{ minWidth: 0 }}>

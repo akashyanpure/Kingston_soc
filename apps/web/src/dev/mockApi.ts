@@ -14,13 +14,14 @@ import {
   type AuditEvent, type CreatePhraseRequest, type CreateUserRequest, type CreateVisitRequest, type DescriptionPhrase,
   type FormSummary, type ManagerOverview, type Mutation, type PushRequest, type ReferenceData, type ReportSummary,
   type SystemStatus, type UpdateUserRequest, type User, type VisitBundle, type VisitSummary,
+  type CreateSigningLinkRequest, type PublicDisputeRequest, type PublicSignRequest, type SigningLink, type SigningView, SIGNING_LINK_DAYS,
 } from '@soc/shared';
 import { renderReportHtml } from '@soc/report';
 import { v7 as uuidv7 } from 'uuid';
 import { buildVisitCreates } from '../lib/visitFactory';
 import { setFetch } from '../lib/api';
 
-const KEY = 'soc-mock-api-v3';
+const KEY = 'soc-mock-api-v4';
 const FORM_VERSION_ID = '0196f000-0000-7000-8000-000000000001';
 const FORM = buildFormDefinition();
 const STARTED_AT = Date.now();
@@ -48,6 +49,8 @@ interface State {
   seq: number;
   audit: AuditEvent[];
   auditSeq: number;
+  links: (Row & { token: string })[];
+  disputes: Row[];
 }
 
 const ENTITY_TABLE: Record<string, string> = {
@@ -91,17 +94,29 @@ const PLANS: Record<string, string[]> = {
   '1-bed flat': ['FRONT_DOOR', 'HALLWAY', 'RECEPTION', 'KITCHEN', 'BEDROOM_1', 'BATHROOM'],
   '2-bed flat': ['FRONT_DOOR', 'HALLWAY', 'RECEPTION', 'KITCHEN', 'BEDROOM_1', 'BEDROOM_2', 'BATHROOM'],
 };
-const DEFECTS: Record<string, [string, string][]> = {
-  F: [['Light scuffing to the lower wall by the door.', 'Fair wear; no action.'], ['Minor limescale around the taps.', 'Clean at check-out.']],
-  P: [['Worktop swollen and delaminating left of the sink.', 'Replace worktop section — landlord.'], ['Carpet stained in front of the window, approx. 1m².', 'Professional clean; replace if it persists.']],
-  U: [['Shower mixer cracked at the body; leaks under pressure. Not usable.', 'Replace mixer before letting — landlord.'], ['Smoke alarm missing from the ceiling mount.', 'Fit mains-interlinked alarm immediately.'], ['Exposed wiring behind the socket faceplate.', 'Electrician to make safe — urgent.']],
-};
+
+/** Seeded defect wording that fits the item it is attached to. */
+function defectText(grade: string, label: string): [string, string] {
+  const l = label.toLowerCase();
+  const byItem: [RegExp, Record<string, [string, string]>][] = [
+    [/wall|ceiling/, { F: ['Light scuffing and two small marks near the door.', 'Fair wear; no action.'], P: ['Plaster cracked and paint flaking over about 1m².', 'Make good and redecorate — landlord.'], U: ['Damp patch with black mould spreading from the corner.', 'Treat cause of damp and mould before letting.'] }],
+    [/^door$|door frame|handle|lock/, { F: ['Paint chipped along the lower edge.', 'Touch up at check-out.'], P: ['Door binds on the frame and the latch does not catch.', 'Ease and adjust; replace latch.'], U: ['Lock broken — door cannot be secured.', 'Replace lock immediately — landlord.'] }],
+    [/smoke|alarm/, { F: ['Unit discoloured; test button works.', 'Clean.'], P: ['Alarm chirps — low battery.', 'Replace battery.'], U: ['Smoke alarm missing from the ceiling mount.', 'Fit mains-interlinked alarm immediately.'] }],
+    [/socket|switch|light|fitting/, { F: ['Faceplate scuffed.', 'No action.'], P: ['Faceplate cracked.', 'Replace faceplate.'], U: ['Exposed wiring behind the faceplate.', 'Electrician to make safe — urgent.'] }],
+    [/window/, { F: ['Seals discoloured.', 'Clean.'], P: ['Handle loose; window will not lock.', 'Replace handle.'], U: ['Pane cracked across the corner.', 'Replace glazing before letting.'] }],
+    [/carpet|floor/, { F: ['Light wear in the walkway.', 'Fair wear.'], P: ['Carpet stained in front of the window, approx. 1m².', 'Professional clean; replace if it persists.'], U: ['Floorboard broken — trip hazard.', 'Repair before letting.'] }],
+  ];
+  const hit = byItem.find(([re]) => re.test(l));
+  if (hit) return hit[1][grade]!;
+  const name = label.charAt(0) + label.slice(1).toLowerCase();
+  return ({ F: [`Light wear to the ${l}; cosmetic only.`, 'Fair wear; no action.'], P: [`${name} damaged and needs repair.`, 'Repair or replace — landlord.'], U: [`${name} broken and unsafe to use.`, 'Make safe before letting.'] } as Record<string, [string, string]>)[grade]!;
+}
 
 function seed(): State {
   rnd = 42;
   const s: State = {
     me: null, users: SEED_USERS.map((u) => ({ ...u })), schemes: SCHEMES.map((x) => ({ code: x.code, name: x.name })),
-    phrases: seedPhrases(), properties: {}, landlords: {}, reports: {}, processed: [], seq: 400, audit: [], auditSeq: 1,
+    phrases: seedPhrases(), properties: {}, landlords: {}, reports: {}, processed: [], seq: 400, audit: [], auditSeq: 1, links: [], disputes: [],
     tables: Object.fromEntries(Object.values(ENTITY_TABLE).map((t) => [t, {}])),
   };
   const landlords = [
@@ -168,7 +183,7 @@ function seed(): State {
     const codes = (sp.defects ?? '').split('').filter(Boolean);
     codes.forEach((g, n) => {
       const it = items[(n * 7 + 3) % items.length]!;
-      const [comment, dil] = pick(DEFECTS[g]!);
+      const [comment, dil] = defectText(g, String(it.label));
       Object.assign(it, { condition: g, comment, dilapidation: dil });
     });
     for (const g of Object.values(s.tables.general!).filter((r) => r.visitId === id)) g.value = String(g.value || 'Good order');
@@ -199,13 +214,95 @@ function seed(): State {
       };
       sig('officer', officer.name);
       if (sp.landlordSigned) sig('landlord_agent', String(s.landlords[prop.landlordId]!.name));
+      else {
+        // An unsigned report gets a signing link; the first two get the demo tokens used in screenshots.
+        const n = s.links.filter((l) => l.status === 'pending').length;
+        const ll = s.landlords[prop.landlordId]!;
+        const token = ['demo-valid', 'demo-opened'][n] ?? `tok-${uuidv7()}`;
+        addLink(s, report.id, token, { recipientName: ll.name as string, recipientEmail: ll.email as string, createdBy: officer.id, createdAt: new Date(Math.max(Date.parse(report.issuedAt), Date.now() - (n + 1) * 86400_000)).toISOString(), openedAt: n === 1 ? new Date(Date.now() - 3 * 3600_000).toISOString() : null });
+      }
+      if (sp.landlordSigned && !s.links.some((l) => l.token === 'demo-used')) {
+        addLink(s, report.id, 'demo-used', { recipientName: String(s.landlords[prop.landlordId]!.name), recipientEmail: null, createdBy: officer.id, createdAt: report.issuedAt, status: 'signed', signedAt: report.issuedAt, openedAt: report.issuedAt });
+      }
     }
+    {
+      for (const it of items.filter((i) => i.condition === 'F' || i.condition === 'P' || i.condition === 'U')) {
+        for (let k = 0; k < (it.condition === 'F' ? 1 : 2); k++) {
+          const pid = uuidv7();
+          s.tables.photos![pid] = {
+            id: pid, visitId: id, roomInstanceId: it.roomInstanceId, itemRecordId: it.id, ref: null, capturedAt: visit.startedAt,
+            lat: 51.41, lng: -0.3, stampText: `${prop.addressLine1.toUpperCase()}, ${prop.postcode}`, sha256: 'a'.repeat(64), bytes: 120_000,
+            width: 1600, height: 1200, uploaded: true, deletedAt: null, updatedAt: visit.startedAt, updatedBy: officer.id,
+          };
+        }
+      }
+    }
+  }
+  // Expired and revoked demo links on the oldest issued report.
+  const oldest = Object.values(s.reports).sort((a, b) => String(a.issuedAt).localeCompare(String(b.issuedAt)))[0];
+  if (oldest) {
+    addLink(s, oldest.id as string, 'demo-expired', { recipientName: 'M. Osei', recipientEmail: 'lettings@example.org', createdBy: officers[0]!.id, createdAt: new Date(Date.now() - 20 * 86400_000).toISOString(), expiresAt: new Date(Date.now() - 6 * 86400_000).toISOString(), status: 'expired' });
+    addLink(s, oldest.id as string, 'demo-revoked', { recipientName: 'M. Osei', recipientEmail: null, createdBy: officers[0]!.id, createdAt: new Date(Date.now() - 19 * 86400_000).toISOString(), status: 'revoked' });
   }
   // A little audit history.
   for (const v of Object.values(s.tables.visits!).slice(0, 8)) {
     addAudit(s, 'visit', v.id as string, 'status', 'scheduled', v.status, s.users.find((u) => u.id === v.officerId)?.name ?? null, (v.startedAt as string) ?? (v.updatedAt as string));
   }
   return s;
+}
+
+function addLink(s: State, reportId: string, token: string, extra: Partial<SigningLink> & Row = {}) {
+  const createdAt = (extra.createdAt as string) ?? new Date().toISOString();
+  const link = {
+    id: uuidv7(), reportId, role: 'landlord_agent', recipientName: null, recipientEmail: null, status: 'pending', createdAt, createdBy: s.users[0]!.id,
+    expiresAt: new Date(Date.parse(createdAt) + SIGNING_LINK_DAYS * 86400_000).toISOString(), openedAt: null, signedAt: null, disputes: 0,
+    ...extra, token,
+  };
+  s.links.push(link);
+  return link;
+}
+const publicLink = ({ token: _t, ...l }: Row & { token: string }) => l as unknown as SigningLink;
+function linkState(l: Row): string {
+  if (l.status === 'pending' && Date.parse(l.expiresAt as string) < Date.now()) return 'expired';
+  return l.status as string;
+}
+const BELOW: Record<string, true> = { F: true, P: true, U: true, NA: true };
+
+function signingView(s: State, l: Row & { token: string }): SigningView {
+  const report = s.reports[l.reportId as string]!;
+  const b = bundle(s, report.visitId as string)!;
+  const present = new Set(b.rooms.filter((r) => r.present).map((r) => r.id));
+  const items = b.items.filter((i) => i.roomInstanceId === null || present.has(i.roomInstanceId));
+  const roomLabel = (id: string | null) => b.rooms.find((r) => r.id === id)?.label ?? 'MISCELLANEOUS';
+  const disputed = new Set(s.disputes.filter((d) => d.signingLinkId === l.id).map((d) => d.itemRecordId));
+  return {
+    status: linkState(l) as SigningView['status'], role: l.role as SigningView['role'], recipientName: (l.recipientName as string) ?? null,
+    expiresAt: l.expiresAt as string, reportNumber: report.reportNumber as string,
+    schemeName: s.schemes.find((x) => x.code === b.visit.schemeCode)?.name ?? b.visit.schemeCode,
+    address: b.property.addressLine1, postcode: b.property.postcode, inspectedAt: b.visit.startedAt, issuedAt: report.issuedAt as string,
+    officerName: userName(s, b.visit.officerId),
+    stats: { items: items.length, belowGood: items.filter((i) => i.condition && BELOW[i.condition] && i.condition !== 'NA').length, photos: b.photos.filter((p) => !p.deletedAt).length },
+    belowGood: items.filter((i) => i.condition && (i.condition === 'F' || i.condition === 'P' || i.condition === 'U' || (i.condition === 'NA' && i.naReason)))
+      .map((i) => ({
+        itemRecordId: i.id, room: roomLabel(i.roomInstanceId), item: i.label, condition: i.condition!,
+        comment: i.condition === 'NA' ? i.naReason : i.comment, photoIds: b.photos.filter((p) => p.itemRecordId === i.id && !p.deletedAt).map((p) => p.id),
+        disputed: disputed.has(i.id),
+      })),
+    signedBy: b.signatures.map((x) => ({ role: x.role, name: x.name, signedAt: x.signedAt })),
+    pdfReady: !!report.pdfReady,
+  };
+}
+
+/** A stamped photo placeholder (the mock keeps no image files). */
+function placeholderPhoto(label: string): string {
+  const hue = [190, 30, 12, 350][label.length % 4];
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},18%,78%)"/><stop offset="1" stop-color="hsl(${hue},14%,58%)"/></linearGradient></defs>
+<rect width="800" height="600" fill="url(#g)"/><rect x="80" y="70" width="640" height="380" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="3" stroke-dasharray="14 10"/>
+<circle cx="400" cy="250" r="60" fill="rgba(255,255,255,.35)"/>
+<rect y="510" width="800" height="90" fill="rgba(7,41,50,.88)"/>
+<text x="24" y="545" font-family="monospace" font-size="22" fill="#f2f2f3">${label.replace(/[<&]/g, '')}</text>
+<text x="24" y="578" font-family="monospace" font-size="18" fill="#cfe8ef">Evidence photo · stamped on site</text></svg>`;
 }
 
 function seedPhrases(): DescriptionPhrase[] {
@@ -258,7 +355,7 @@ function summary(s: State, b: VisitBundle): VisitSummary {
   const present = new Set(b.rooms.filter((r) => r.present).map((r) => r.id));
   const items = b.items.filter((i) => i.roomInstanceId === null || present.has(i.roomInstanceId));
   return {
-    id: b.visit.id, schemeCode: b.visit.schemeCode, visitType: b.visit.visitType, status: b.visit.status, scheduledAt: b.visit.scheduledAt,
+    id: b.visit.id, propertyId: b.visit.propertyId, schemeCode: b.visit.schemeCode, visitType: b.visit.visitType, status: b.visit.status, scheduledAt: b.visit.scheduledAt,
     reportNumber: b.visit.reportNumber, officerId: b.visit.officerId, updatedAt: b.visit.updatedAt,
     address: b.property.addressLine1, postcode: b.property.postcode, officerName: userName(s, b.visit.officerId),
     itemsTotal: items.length, itemsGraded: items.filter((i) => i.condition).length,
@@ -389,6 +486,7 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
   const me = s.users.find((u) => u.id === s.me && u.active) ?? null;
   const q = (k: string) => url.searchParams.get(k);
   let m: RegExpMatchArray | null;
+  let pm: RegExpMatchArray | null;
 
   if (method === 'GET' && path === '/health') return json({ ok: true, db: true });
   if (method === 'GET' && path === '/auth/dev-users') return json({ users: s.users.filter((u) => u.active) });
@@ -399,6 +497,60 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
     s.me = u.id;
     return json({ user: u });
   }
+  // ── public signing (token, no session) ──
+  if ((m = path.match(/^\/sign\/([^/]+)(\/.*)?$/))) {
+    const link = s.links.find((l) => l.token === m![1]);
+    if (!link) return err(404, 'NOT_FOUND', 'This link is not valid.');
+    const state = linkState(link);
+    const sub = m[2] ?? '';
+    if ((pm = sub.match(/^\/photos\/([^/]+)$/)) && method === 'GET') {
+      const photo = s.tables.photos![pm[1]!];
+      if (!photo || s.reports[link.reportId as string]?.visitId !== photo.visitId) return err(404, 'NOT_FOUND', 'No such photo');
+      const item = s.tables.items![photo.itemRecordId as string];
+      return new Response(placeholderPhoto(`${String(item?.label ?? 'PHOTO')} · ${String(photo.id).slice(-4)}`), { headers: { 'content-type': 'image/svg+xml' } });
+    }
+    if (sub === '/pdf' && method === 'GET') {
+      const report = s.reports[link.reportId as string]!;
+      const b = bundle(s, report.visitId as string)!;
+      return new Response(renderReportHtml({ bundle: b, form: FORM, schemeName: s.schemes.find((x) => x.code === b.visit.schemeCode)?.name ?? '', officerName: userName(s, b.visit.officerId), mode: 'final', photoSrc: () => '' }), { headers: { 'content-type': 'text/html' } });
+    }
+    if (state === 'revoked') return err(410, 'LINK_REVOKED', 'This link has been withdrawn.');
+    if (state === 'signed') return err(410, 'LINK_USED', 'This report has already been signed with this link.');
+    if (state === 'expired') return err(410, 'LINK_EXPIRED', 'This link has expired.');
+    if (sub === '' && method === 'GET') {
+      link.openedAt ??= new Date().toISOString();
+      return json(signingView(s, link));
+    }
+    if (sub === '' && method === 'POST') {
+      const req = body() as PublicSignRequest;
+      if (!req?.name || req.name.trim().length < 2 || !String(req.imageDataUrl ?? '').startsWith('data:image/png;base64,') || req.confirm !== true) return err(400, 'VALIDATION', 'Name, signature and confirmation are required.');
+      const report = s.reports[link.reportId as string]!;
+      const now = new Date().toISOString();
+      const sid = uuidv7();
+      const signature = { id: sid, visitId: report.visitId, reportId: report.id, role: link.role, name: req.name.trim(), method: 'link', signedAt: now, contentSha256: null, reportSha256: report.sha256, hasImage: true, updatedAt: now, updatedBy: null };
+      s.tables.signatures![sid] = signature;
+      Object.assign(link, { status: 'signed', signedAt: now });
+      addAudit(s, 'signature', sid, 'signed', null, `${req.name.trim()} (${String(link.role)}) by link`, req.name.trim());
+      return json({ signature });
+    }
+    if (sub === '/disputes' && method === 'POST') {
+      const req = body() as PublicDisputeRequest;
+      if (!req?.itemRecordId || String(req.comment ?? '').trim().length < 5) return err(400, 'VALIDATION', 'Please say what is wrong (at least 5 characters).');
+      const item = s.tables.items![req.itemRecordId];
+      const report = s.reports[link.reportId as string]!;
+      if (!item || item.visitId !== report.visitId) return err(404, 'NOT_FOUND', 'No such item in this report');
+      const dispute = {
+        id: uuidv7(), reportId: report.id, signingLinkId: link.id, itemRecordId: item.id,
+        room: String(s.tables.rooms![item.roomInstanceId as string]?.label ?? 'MISCELLANEOUS'), item: item.label, comment: req.comment.trim(),
+        createdAt: new Date().toISOString(), resolvedAt: null,
+      };
+      s.disputes.push(dispute);
+      link.disputes = Number(link.disputes ?? 0) + 1;
+      return json({ dispute }, 201);
+    }
+    return err(404, 'NOT_FOUND', 'Unknown signing endpoint');
+  }
+
   if (!me) return err(401, 'UNAUTHORIZED', 'Sign in');
   const isManager = me.role === 'manager' || me.role === 'admin';
   const isAdmin = me.role === 'admin';
@@ -509,6 +661,46 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
     Object.assign(s.tables.visits![b.visit.id]!, { status: 'issued', reportNumber: report.reportNumber, completedAt: report.issuedAt, updatedAt: report.issuedAt });
     addAudit(s, 'visit', b.visit.id, 'status', b.visit.status, 'issued', me.name);
     return json({ report }, 201);
+  }
+
+  // signing links (staff)
+  if ((m = path.match(/^\/reports\/([^/]+)\/signing-links$/))) {
+    const report = s.reports[m[1]!];
+    if (!report) return err(404, 'NOT_FOUND', 'No such report');
+    if (method === 'GET') {
+      return json({ links: s.links.filter((l) => l.reportId === report.id).map((l) => ({ ...publicLink(l), status: linkState(l) })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) });
+    }
+    if (method === 'POST') {
+      const req = body() as CreateSigningLinkRequest;
+      const b = bundle(s, report.visitId as string)!;
+      if ((req.role === 'tenant_check_in' && b.visit.visitType !== 'check_in') || (req.role === 'tenant_check_out' && b.visit.visitType !== 'check_out')) return err(400, 'ROLE_INVALID', 'That tenant role does not match this visit type.');
+      if (b.signatures.some((x) => x.role === req.role)) return err(409, 'ALREADY_SIGNED', 'That role has already signed this report.');
+      const token = `tok-${uuidv7().replace(/-/g, '')}`;
+      const link = addLink(s, report.id as string, token, { role: req.role, recipientName: req.recipientName ?? null, recipientEmail: req.recipientEmail ?? null, createdBy: me.id });
+      addAudit(s, 'signing_link', link.id, 'created', null, { role: req.role, to: req.recipientEmail ?? req.recipientName ?? null }, me.name);
+      return json({ link: publicLink(link), url: `${location.origin}/sign/${token}` }, 201);
+    }
+  }
+  if ((m = path.match(/^\/signing-links\/([^/]+)\/revoke$/)) && method === 'POST') {
+    const link = s.links.find((l) => l.id === m![1]);
+    if (!link) return err(404, 'NOT_FOUND', 'No such link');
+    if (link.status === 'signed') return err(409, 'LINK_USED', 'A signed link cannot be revoked.');
+    link.status = 'revoked';
+    addAudit(s, 'signing_link', link.id as string, 'status', 'pending', 'revoked', me.name);
+    return json({ link: publicLink(link) });
+  }
+  if ((m = path.match(/^\/reports\/([^/]+)\/disputes$/)) && method === 'GET') {
+    return json({ disputes: s.disputes.filter((d) => d.reportId === m![1]).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))) });
+  }
+  if (method === 'GET' && path === '/manage/visits.csv') {
+    if (!isManager) return err(403, 'FORBIDDEN', 'Managers only');
+    const [from, to] = [q('from'), q('to')];
+    const rows = Object.values(s.tables.visits!).filter((v) => (!from && !to) || inRange(v.scheduledAt, from ?? '0000-00-00', to ?? '9999-99-99'))
+      .map((v) => summary(s, bundle(s, v.id as string)!));
+    const csv = ['Scheduled,Address,Postcode,Scheme,Type,Officer,Status,Graded,Items,Defects,Report'].concat(rows.map((r) =>
+      [r.scheduledAt ?? '', r.address, r.postcode, r.schemeCode, r.visitType, r.officerName, r.status, r.itemsGraded, r.itemsTotal, r.defects, r.reportNumber ?? '']
+        .map((x) => `"${String(x).replace(/"/g, '""')}"`).join(','))).join('\r\n');
+    return new Response(csv, { headers: { 'content-type': 'text/csv' } });
   }
 
   // reports

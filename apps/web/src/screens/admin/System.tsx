@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { VISIT_STATUSES, type AuditEvent, type SystemStatus } from '@soc/shared';
 import { EmptyState, Icon, Skeleton, StatTile } from '../../components/ui';
-import { relativeTime, useApi } from '../../lib/portal';
+import { relativeTime, useApi, usePageTitle } from '../../lib/portal';
 import { STATUS_LABEL } from '../../lib/visitData';
 
 const ENTITIES = ['', 'visit', 'item_record', 'room_instance', 'photo', 'signature', 'user', 'description_phrase', 'scheme'];
@@ -12,6 +12,7 @@ const fmtUptime = (s: number) => {
 const show = (v: unknown) => (v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v));
 
 export function AdminSystem() {
+  usePageTitle('System');
   const { data, error, loading, reload } = useApi<SystemStatus>('/admin/system');
   const [entity, setEntity] = useState('');
   const audit = useApi<{ events: AuditEvent[] }>(`/admin/audit?limit=50${entity ? `&entity=${entity}` : ''}`);
@@ -98,17 +99,17 @@ export function AdminSystem() {
         {audit.data && audit.data.events.length === 0 && <div style={{ padding: 16 }}><EmptyState icon="history" title="No events" /></div>}
         {audit.data && audit.data.events.length > 0 && (
           <div className="table-wrap">
-            <table className="table">
+            <table className="table table--stack">
               <caption className="visually-hidden">Audit events, newest first</caption>
               <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Entity</th><th scope="col">Field</th><th scope="col">Change</th></tr></thead>
               <tbody>
                 {audit.data.events.map((e) => (
                   <tr key={e.id}>
-                    <td style={{ whiteSpace: 'nowrap' }} title={new Date(e.at).toLocaleString('en-GB')}>{relativeTime(e.at)}</td>
-                    <td>{e.actorName ?? <span className="muted">system</span>}</td>
-                    <td><span className="pill">{e.entity.replace('_', ' ')}</span> <span className="mono muted">{e.entityId.slice(-6)}</span></td>
-                    <td>{e.field}</td>
-                    <td className="small wrap"><span className="muted">{show(e.oldValue)}</span> <Icon name="arrowRight" size={14} style={{ display: 'inline', verticalAlign: -2, color: 'var(--muted)' }} /> <strong>{show(e.newValue)}</strong></td>
+                    <td data-label="When" style={{ whiteSpace: 'nowrap' }} title={new Date(e.at).toLocaleString('en-GB')}>{relativeTime(e.at)}</td>
+                    <td data-label="Who">{e.actorName ?? <span className="muted">system</span>}</td>
+                    <td data-label="Entity"><span className="pill">{e.entity.replace('_', ' ')}</span> <span className="mono muted">{e.entityId.slice(-6)}</span></td>
+                    <td data-label="Field">{e.field}</td>
+                    <td className="small wrap cell--wide" data-label="Change"><span className="muted">{show(e.oldValue)}</span> <Icon name="arrowRight" size={14} style={{ display: 'inline', verticalAlign: -2, color: 'var(--muted)' }} /> <strong>{show(e.newValue)}</strong></td>
                   </tr>
                 ))}
               </tbody>

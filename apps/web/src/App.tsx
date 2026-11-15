@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router';
 import { PortalShell, RequireRole } from './components/PortalShell';
-import { RequireSession, Shell } from './components/Shell';
+import { Shell } from './components/Shell';
 import { ScreenSkeleton } from './components/ui';
 import { allowedPath, homeFor } from './lib/portal';
 import { useSession } from './lib/session';
@@ -19,6 +19,9 @@ const Review = lazy(() => import('./screens/Review').then((m) => ({ default: m.R
 const ManageDashboard = lazy(() => import('./screens/manage/Dashboard').then((m) => ({ default: m.ManageDashboard })));
 const ManageSchedule = lazy(() => import('./screens/manage/Schedule').then((m) => ({ default: m.ManageSchedule })));
 const ManageReports = lazy(() => import('./screens/manage/Reports').then((m) => ({ default: m.ManageReports })));
+const AdminOverview = lazy(() => import('./screens/admin/Overview').then((m) => ({ default: m.AdminOverview })));
+const PortalAccount = lazy(() => import('./screens/manage/Account').then((m) => ({ default: m.PortalAccount })));
+const SignPage = lazy(() => import('./screens/sign/SignPage').then((m) => ({ default: m.SignPage })));
 const AdminUsers = lazy(() => import('./screens/admin/Users').then((m) => ({ default: m.AdminUsers })));
 const AdminLibrary = lazy(() => import('./screens/admin/Library').then((m) => ({ default: m.AdminLibrary })));
 const AdminFormSchemes = lazy(() => import('./screens/admin/FormSchemes').then((m) => ({ default: m.AdminFormSchemes })));
@@ -46,9 +49,12 @@ export function AppRoutes() {
     <Suspense fallback={<div style={{ padding: 24 }}><ScreenSkeleton /></div>}>
       <Routes>
         <Route index element={<RoleHome />} />
+        {/* Public signing page for landlords/tenants: no login, no app shell. */}
+        <Route path="sign/:token" element={<SignPage />} />
         <Route element={<Shell />}>
           <Route path="/login" element={<LoginRoute />} />
-          <Route element={<RequireSession />}>
+          {/* Field flow: officers only. Managers/admins are sent to their own home. */}
+          <Route element={<RequireRole area="officer" />}>
             <Route path="visits" element={<Visits />} />
             <Route path="visits/new" element={<NewVisit />} />
             <Route path="visits/:visitId" element={<VisitOverview />} />
@@ -64,11 +70,13 @@ export function AppRoutes() {
             <Route path="manage" element={<ManageDashboard />} />
             <Route path="manage/visits" element={<ManageSchedule />} />
             <Route path="manage/reports" element={<ManageReports />} />
+            <Route path="manage/account" element={<PortalAccount />} />
           </Route>
         </Route>
         <Route element={<RequireRole area="admin" />}>
           <Route element={<PortalShell />}>
-            <Route path="admin" element={<AdminUsers />} />
+            <Route path="admin" element={<AdminOverview />} />
+            <Route path="admin/users" element={<AdminUsers />} />
             <Route path="admin/library" element={<AdminLibrary />} />
             <Route path="admin/form" element={<AdminFormSchemes />} />
             <Route path="admin/system" element={<AdminSystem />} />

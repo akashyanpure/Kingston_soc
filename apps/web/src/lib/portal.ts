@@ -7,25 +7,42 @@ export type Area = 'officer' | 'manage' | 'admin';
 
 export const homeFor = (role: Role | undefined | null): string => (role ? ROLE_HOME[role] : '/login');
 
-/** officer area: everyone; /manage: manager + admin; /admin: admin only. */
+/**
+ * Strict separation (decision 2026-11-15): the phone field flow (/visits/*, /account) is for
+ * officers only; /manage: manager + admin; /admin: admin only.
+ */
 export function canAccess(role: Role | undefined | null, area: Area): boolean {
   if (!role) return false;
-  if (area === 'officer') return true;
+  if (area === 'officer') return role === 'officer';
   if (area === 'manage') return role === 'manager' || role === 'admin';
   return role === 'admin';
 }
 
 /** Is `path` one the role may open? Used to honour a "from" redirect only when allowed. */
+export function areaOf(path: string): Area | null {
+  if (path.startsWith('/admin')) return 'admin';
+  if (path.startsWith('/manage')) return 'manage';
+  if (path.startsWith('/visits') || path.startsWith('/account')) return 'officer';
+  return null;
+}
 export function allowedPath(role: Role, path: string): boolean {
-  if (path.startsWith('/admin')) return canAccess(role, 'admin');
-  if (path.startsWith('/manage')) return canAccess(role, 'manage');
-  return path !== '/' && path !== '/login';
+  const area = areaOf(path);
+  return area !== null && canAccess(role, area);
 }
 
 export function errorMessage(e: unknown): string {
   if (e instanceof NetworkError) return 'No connection — this page needs the server.';
   if (e instanceof HttpError) return e.message || `Request failed (${e.status})`;
   return (e as Error)?.message ?? 'Something went wrong';
+}
+
+/** Sets document.title while a page is shown. */
+export function usePageTitle(title: string): void {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = `${title} · Kingston SOC`;
+    return () => { document.title = prev; };
+  }, [title]);
 }
 
 export interface ApiState<T> {

@@ -3,7 +3,7 @@ import { ROLES, type CreateUserRequest, type Role, type UpdateUserRequest, type 
 import { Dialog } from '../../components/Dialog';
 import { EmptyState, Icon, Skeleton } from '../../components/ui';
 import { api, HttpError } from '../../lib/api';
-import { errorMessage, generatePassword, useApi } from '../../lib/portal';
+import { errorMessage, generatePassword, useApi, usePageTitle } from '../../lib/portal';
 import { useSession } from '../../lib/session';
 
 const ROLE_LABEL: Record<Role, string> = { officer: 'Officer', manager: 'Manager', admin: 'Admin' };
@@ -35,6 +35,7 @@ function OneTimeSecret({ password, who }: { password: string; who: string }) {
 }
 
 export function AdminUsers() {
+  usePageTitle('Users');
   const session = useSession();
   const { data, error, loading, reload } = useApi<{ users: User[] }>('/users');
   const [creating, setCreating] = useState(false);
@@ -79,17 +80,17 @@ export function AdminUsers() {
       {data && users.length === 0 && <EmptyState icon="users" title="No users yet" />}
       {users.length > 0 && (
         <div className="table-wrap">
-          <table className="table">
+          <table className="table table--stack">
             <caption className="visually-hidden">Users</caption>
             <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} style={u.active ? undefined : { opacity: 0.72 }}>
-                  <th scope="row"><span className="addr">{u.name}</span>{u.id === session?.id && <span className="pill" style={{ marginLeft: 8 }}>You</span>}</th>
-                  <td>{u.email}</td>
-                  <td><span className={`pill ${ROLE_PILL[u.role]}`}>{ROLE_LABEL[u.role]}</span></td>
-                  <td>{u.active ? <span className="yes"><span className="dot" /> Active</span> : <span className="muted">Deactivated</span>}</td>
-                  <td>
+                  <th scope="row" className="cell--wide"><span className="addr">{u.name}</span>{u.id === session?.id && <span className="pill" style={{ marginLeft: 8 }}>You</span>}</th>
+                  <td className="cell--wide" data-label="Email">{u.email}</td>
+                  <td data-label="Role"><span className={`pill ${ROLE_PILL[u.role]}`}>{ROLE_LABEL[u.role]}</span></td>
+                  <td data-label="Status">{u.active ? <span className="yes"><span className="dot" /> Active</span> : <span className="muted">Deactivated</span>}</td>
+                  <td className="cell--actions">
                     <div className="row-actions">
                       <button type="button" className="btn btn--xs" onClick={() => setEditing(u)} aria-label={`Edit ${u.name}`}><Icon name="edit" size={16} /> Edit</button>
                       <button type="button" className="btn btn--xs" onClick={() => void resetPassword(u)} aria-label={`Reset password for ${u.name}`}><Icon name="key" size={16} /> Reset password</button>

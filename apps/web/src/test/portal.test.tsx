@@ -41,31 +41,34 @@ describe('role homes and guards', () => {
     expect(canAccess('officer', 'manage')).toBe(false);
     expect(canAccess('manager', 'admin')).toBe(false);
     expect(canAccess('admin', 'manage')).toBe(true);
+    expect(canAccess('manager', 'officer')).toBe(false);
+    expect(canAccess('admin', 'officer')).toBe(false);
+    expect(canAccess('officer', 'officer')).toBe(true);
   });
 
   it('sends each role from / to its home', async () => {
     await signInAs('manager');
     renderAt('/');
-    expect(await screen.findByRole('heading', { name: 'Operations dashboard' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Inventory operations' })).toBeTruthy();
   });
 
   it('after sign-in, /login redirects to the role home', async () => {
     await signInAs('admin');
     renderAt('/login');
-    expect(await screen.findByRole('heading', { name: 'Users' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Administration' })).toBeTruthy();
   });
 
   it('an officer cannot open /manage or /admin', async () => {
     await signInAs('officer');
     renderAt('/manage');
     expect(await screen.findByText('My visits')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Operations dashboard' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Inventory operations' })).toBeNull();
   });
 
   it('a manager cannot open /admin; an admin can open /manage', async () => {
     await signInAs('manager');
     const { unmount } = renderAt('/admin/system');
-    expect(await screen.findByRole('heading', { name: 'Operations dashboard' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Inventory operations' })).toBeTruthy();
     unmount();
     await signInAs('admin');
     renderAt('/manage/reports');
@@ -79,14 +82,14 @@ describe('portal screens on the dev mock', () => {
     renderAt('/manage');
     expect((await screen.findAllByText('Unacceptable items')).length).toBe(2); // KPI tile + panel heading
     expect(await screen.findByRole('heading', { name: /Officer workload/ })).toBeTruthy();
-    const workload = screen.getByRole('table', { name: /Visits per officer/ });
-    expect(within(workload).getByText('S. Ahmed')).toBeTruthy();
+    const workload = screen.getByRole('list', { name: /Visits per officer/ });
+    expect(within(workload).getByText('S. Ahmed')).toBeTruthy(); // workload list
     expect(screen.getByRole('heading', { name: /Issued without landlord signature/ })).toBeTruthy();
   });
 
   it('admin users lists every account with role pills', async () => {
     await signInAs('admin');
-    renderAt('/admin');
+    renderAt('/admin/users');
     const table = await screen.findByRole('table', { name: 'Users' });
     expect(within(table).getByText('P. Dekaate')).toBeTruthy();
     expect(within(table).getByText('manager@kingston.test')).toBeTruthy();
@@ -96,7 +99,7 @@ describe('portal screens on the dev mock', () => {
   it('admin users explains the self-lockout guard', async () => {
     await signInAs('admin');
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-    renderAt('/admin');
+    renderAt('/admin/users');
     const table = await screen.findByRole('table', { name: 'Users' });
     const me = within(table).getByText('J. Whitfield').closest('tr')!;
     fireEvent.click(within(me).getByRole('button', { name: 'Deactivate' }));

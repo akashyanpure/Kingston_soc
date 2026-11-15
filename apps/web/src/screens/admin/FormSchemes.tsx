@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormSummary } from '@soc/shared';
 import { Icon, Skeleton, StatTile } from '../../components/ui';
 import { api } from '../../lib/api';
-import { errorMessage, fmtDay, useApi } from '../../lib/portal';
+import { errorMessage, fmtDay, useApi, usePageTitle } from '../../lib/portal';
 import { fetchReference, useReference } from '../../lib/reference';
 
 const title = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bWc\b/, 'WC');
@@ -43,6 +43,7 @@ function SchemeRow({ code, name, onSaved }: { code: string; name: string; onSave
 }
 
 export function AdminFormSchemes() {
+  usePageTitle('Form & schemes');
   const ref = useReference();
   const { data, error, loading } = useApi<FormSummary>('/admin/form');
   return (

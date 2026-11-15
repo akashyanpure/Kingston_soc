@@ -3,6 +3,8 @@ import './styles/app.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { getMeta, type SessionUser } from './lib/db';
+import { allowedPath, areaOf, homeFor } from './lib/portal';
 import { refreshMe } from './lib/session';
 import { syncEngine } from './lib/sync';
 
@@ -23,6 +25,16 @@ async function boot() {
 
   // Ask the browser not to evict our IndexedDB (unsynced inspections) under storage pressure.
   void navigator.storage?.persist?.().catch(() => {});
+
+  // A stale installed PWA may reopen on a route from another role (e.g. a manager on /visits):
+  // correct the URL by role before the router renders anything.
+  try {
+    const session = await getMeta<SessionUser>('session');
+    const path = location.pathname;
+    if (session && areaOf(path) && !allowedPath(session.role, path)) history.replaceState(null, '', homeFor(session.role));
+  } catch {
+    /* IndexedDB unavailable: the route guards still apply */
+  }
 
   if (navigator.onLine) void refreshMe();
   syncEngine.start();

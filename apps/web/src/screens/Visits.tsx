@@ -6,6 +6,7 @@ import { EmptyState, Icon, ProgressRing, ScreenSkeleton } from '../components/ui
 import { db } from '../lib/db';
 import { progressOf, relevantItems, useOnline } from '../lib/hooks';
 import { useSession } from '../lib/session';
+import { usePageTitle } from '../lib/portal';
 import { syncEngine } from '../lib/sync';
 import { STATUS_LABEL, VISIT_TYPE_LABEL, addressOf } from '../lib/visitData';
 
@@ -29,6 +30,7 @@ function startOfWeek(d: Date) {
 }
 
 export function Visits() {
+  usePageTitle('My visits');
   const session = useSession();
   const online = useOnline();
   useEffect(() => { void syncEngine.syncNow({ pull: true }); }, []);

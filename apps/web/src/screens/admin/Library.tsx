@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import type { CreatePhraseRequest, DescriptionPhrase } from '@soc/shared';
 import { EmptyState, Icon, Skeleton } from '../../components/ui';
 import { api } from '../../lib/api';
-import { errorMessage, useApi } from '../../lib/portal';
+import { errorMessage, useApi, usePageTitle } from '../../lib/portal';
 import { fetchReference, formOf, useReference } from '../../lib/reference';
 
 const title = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bWc\b/, 'WC');
@@ -28,6 +28,7 @@ function useTargets() {
 }
 
 export function AdminLibrary() {
+  usePageTitle('Description library');
   const targets = useTargets();
   const { data, error, loading, reload } = useApi<{ phrases: DescriptionPhrase[] }>('/admin/phrases');
   const [search, setSearch] = useState('');

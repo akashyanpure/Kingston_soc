@@ -79,7 +79,6 @@ function Tab({ to, icon, label, end }: { to: string; icon: IconName; label: stri
 
 export function Shell({ wide }: { wide?: boolean }) {
   const session = useSession();
-  const isManager = session?.role === 'manager' || session?.role === 'admin';
   return (
     <div className={`shell${wide ? ' shell--wide' : ''}`}>
       <a href="#main" className="skip-link">Skip to content</a>
@@ -100,7 +99,6 @@ export function Shell({ wide }: { wide?: boolean }) {
         <nav className="tabbar" aria-label="Main">
           <Tab to="/visits" end icon="home" label="Visits" />
           <Tab to="/visits/new" icon="plus" label="New visit" />
-          {isManager && <Tab to={session?.role === 'admin' ? '/admin' : '/manage'} icon="grid" label={session?.role === 'admin' ? 'Admin' : 'Manage'} />}
           <Tab to="/account" icon="user" label="Account" />
         </nav>
       )}
