@@ -1,6 +1,7 @@
 import type { LocalPhoto } from '../lib/db';
 import { useBlobUrl } from '../lib/hooks';
 import { deletePhoto } from '../lib/photo';
+import { Icon } from './ui';
 
 function Thumb({ photo, label, canDelete }: { photo: LocalPhoto; label: string; canDelete: boolean }) {
   const url = useBlobUrl(photo.blob);
@@ -12,7 +13,7 @@ function Thumb({ photo, label, canDelete }: { photo: LocalPhoto; label: string; 
         <button
           type="button" aria-label={`Delete ${label} photo taken ${when}`}
           onClick={() => { if (confirm('Delete this photo?')) void deletePhoto(photo.id); }}
-        >×</button>
+        ><Icon name="trash" size={16} /></button>
       )}
     </div>
   );

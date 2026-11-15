@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useNavigate } from 'react-router';
-import { DEFECT_CONDITIONS, type Condition, type DescriptionPhrase, type FormDefinition, type ItemRecord } from '@soc/shared';
+import { DEFECT_CONDITIONS, roomDisplayName, type Condition, type DescriptionPhrase, type FormDefinition, type ItemRecord } from '@soc/shared';
 import type { LocalPhoto } from '../lib/db';
 import { saveEdit } from '../lib/mutations';
 import type { Abbreviation } from '../lib/reference';
@@ -8,6 +8,7 @@ import { syncEngine } from '../lib/sync';
 import { AutoField, Corners, QtyStepper } from './fields';
 import { GradeControl } from './GradeControl';
 import { PhotoThumbs } from './PhotoThumbs';
+import { Icon } from './ui';
 
 export interface ItemCardProps {
   item: ItemRecord;
@@ -44,15 +45,15 @@ function ItemCardImpl({ item, form, roomLabel, phrases, abbreviations, photos, e
   };
 
   return (
-    <article id={`item-${item.id}`} className={`card item${highlighted ? ' item--target' : ''}`} aria-labelledby={headingId}>
+    <article id={`item-${item.id}`} className={`card item${item.condition ? ` item--${item.condition}` : ''}${highlighted ? ' item--target' : ''}`} aria-labelledby={headingId}>
       <Corners />
-      <div className="row">
+      <div className="item__head">
         {editableLabel ? (
           <div style={{ flex: 1 }}>
             <AutoField label="Item name" value={item.label} onSave={(v) => { if (v.trim()) void save(item.id, { label: v.trim() }); }} disabled={readOnly} id={headingId} />
           </div>
         ) : (
-          <h3 className="item__name" id={headingId}>{item.label}</h3>
+          <h3 className="item__name" id={headingId}>{roomDisplayName(item.label)}</h3>
         )}
         <QtyStepper value={item.qty} itemLabel={item.label} disabled={readOnly} onChange={(qty) => void save(item.id, { qty })} />
       </div>
@@ -71,7 +72,7 @@ function ItemCardImpl({ item, form, roomLabel, phrases, abbreviations, photos, e
           ))}
           {abbreviations.length > 0 && (
             <details style={{ width: '100%' }}>
-              <summary className="small" style={{ minHeight: 44, display: 'flex', alignItems: 'center', cursor: 'pointer', color: 'var(--deep-700)' }}>
+              <summary className="small" style={{ minHeight: 44, display: 'flex', alignItems: 'center', cursor: 'pointer', color: 'var(--teal)', fontWeight: 550 }}>
                 Shorthand (template key)
               </summary>
               <div className="chips">
@@ -104,7 +105,8 @@ function ItemCardImpl({ item, form, roomLabel, phrases, abbreviations, photos, e
       {!readOnly && (
         <div className="row" style={{ justifyContent: 'flex-start', marginTop: 8 }}>
           <button type="button" className={`btn btn--sm${isDefect && live.length === 0 ? ' photo-btn--required' : ''}`} onClick={takePhoto}>
-            {live.length ? `▣ ${live.length} PHOTO${live.length > 1 ? 'S' : ''} · ADD` : isDefect ? '▢ PHOTO REQUIRED' : '+ PHOTO'}
+            <Icon name="camera" size={18} />
+            {live.length ? `${live.length} photo${live.length > 1 ? 's' : ''} · add` : isDefect ? 'Photo required' : 'Photo'}
           </button>
           {isDefect && live.length === 0 && <span className="small muted">Blocks the report until taken</span>}
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
-import type { ItemRecord } from '@soc/shared';
-import { Corners, ProgressBar } from '../components/fields';
+import { roomDisplayName, type ItemRecord } from '@soc/shared';
+import { Icon, ProgressRing, ScreenSkeleton } from '../components/ui';
 import { ItemCard } from '../components/ItemCard';
 import { progressOf, useBlobUrl, useHashTarget } from '../lib/hooks';
 import { createRow, markAllGood, newId } from '../lib/mutations';
@@ -31,7 +31,7 @@ export function Room() {
   const wide = data?.photos.find((p) => p.id === room?.widePhotoId && !p.deletedAt);
   const wideUrl = useBlobUrl(wide?.blob);
 
-  if (data === undefined || ref === undefined) return null;
+  if (data === undefined || ref === undefined) return <ScreenSkeleton cards={3} />;
   if (!data || !room || !form) return <Navigate to={visitId ? `/visits/${visitId}` : '/'} replace />;
   if (data.visit.status === 'issued') return <Navigate to={`/visits/${data.visit.id}/done`} replace />;
 
@@ -69,37 +69,47 @@ export function Room() {
 
   return (
     <div>
-      <Link to={`/visits/${data.visit.id}`} className="back-link">← All rooms</Link>
-      <div className="row row--top" style={{ marginBottom: 10 }}>
-        <h1 className="title" style={{ margin: 0 }}>{room.label}</h1>
-        <div className="small muted" style={{ textAlign: 'right' }}>{p.graded}/{p.total} graded{p.defects ? <><br />{p.defects} below good</> : null}</div>
+      <Link to={`/visits/${data.visit.id}`} className="back-link"><Icon name="chevronLeft" size={18} /> All rooms</Link>
+      <div className="row row--top" style={{ marginBottom: 14 }}>
+        <div>
+          <div className="kicker">Room {idx + 1} of {presentRooms.length}</div>
+          <h1 className="title" style={{ margin: '4px 0 6px' }}>{roomDisplayName(room.label)}</h1>
+          <div className="chiprow">
+            <span className="pill pill--teal num">{p.graded}/{p.total} graded</span>
+            {p.defects > 0 && <span className="pill pill--P num">{p.defects} below good</span>}
+          </div>
+        </div>
+        <ProgressRing pct={p.pct} size={64} label={`${room.label}: ${p.pct}% graded`} />
       </div>
-      <ProgressBar pct={p.pct} label={`${room.label}: ${p.pct}% graded`} large />
 
       <section className="card" id="wide" aria-labelledby="wide-h">
-        <Corners />
-        <div className="row">
-          <h2 id="wide-h" className="item__name">WIDE ROOM PHOTO</h2>
-          <span className={`pill${wide ? ' pill--teal' : ''}`}>{wide ? 'Taken' : 'Required'}</span>
+        <div className="row" style={{ marginBottom: 10 }}>
+          <h2 id="wide-h" className="item__name">Wide room photo</h2>
+          <span className={`pill${wide ? ' pill--G' : ' pill--F'}`}>{wide ? <><Icon name="check" size={13} /> Taken</> : 'Required'}</span>
         </div>
         {wideUrl ? (
-          <img src={wideUrl} className="wide-photo" alt={`Wide photo of ${room.label}`} style={{ marginTop: 8 }} />
+          <img src={wideUrl} className="wide-photo" alt={`Wide photo of ${room.label}`} />
         ) : wide ? (
-          <div className="stripe wide-photo" role="img" aria-label="Wide photo stored on the server" style={{ marginTop: 8 }} />
+          <div className="stripe wide-photo" role="img" aria-label="Wide photo stored on the server" />
         ) : (
-          <p className="small muted" style={{ margin: '6px 0' }}>One photo of the whole room, taken from the doorway. Needed before the report can issue.</p>
+          <button type="button" className="placeholder-photo" style={{ width: '100%', cursor: 'pointer' }} onClick={takeWide}>
+            <Icon name="camera" size={28} style={{ color: 'var(--teal)' }} />
+            <span>One photo of the whole room, from the doorway.<br />Needed before the report can issue.</span>
+          </button>
         )}
-        <div className="btn-grid" style={{ marginTop: 8, marginBottom: 0 }}>
-          <button type="button" className={`btn btn--sm${wide ? '' : ' photo-btn--required'}`} onClick={takeWide}>{wide ? 'RETAKE' : 'TAKE WIDE PHOTO'}</button>
-          {wide && <button type="button" className="btn btn--sm btn--danger" onClick={() => { if (confirm('Delete the wide photo?')) void deletePhoto(wide.id); }}>DELETE</button>}
+        <div className="btn-grid" style={{ marginTop: 12, marginBottom: 0 }}>
+          <button type="button" className={`btn btn--sm${wide ? '' : ' photo-btn--required'}`} onClick={takeWide}>
+            <Icon name="camera" size={18} /> {wide ? 'Retake' : 'Take wide photo'}
+          </button>
+          {wide && <button type="button" className="btn btn--sm btn--danger" onClick={() => { if (confirm('Delete the wide photo?')) void deletePhoto(wide.id); }}><Icon name="trash" size={16} /> Delete</button>}
         </div>
       </section>
 
       <div className="btn-grid">
-        <button type="button" className="btn btn--sm" onClick={() => void allGood()}>ALL GOOD IN HERE</button>
-        <button type="button" className="btn btn--sm" onClick={() => void notPresent()}>NOT IN THIS PROPERTY</button>
+        <button type="button" className="btn btn--primary" onClick={() => void allGood()}><Icon name="sparkle" size={18} /> All good in here</button>
+        <button type="button" className="btn" onClick={() => void notPresent()}>Not in property</button>
       </div>
-      {message && <div className="notice" role="status">{message}</div>}
+      {message && <div className="notice notice--success" role="status">{message}</div>}
 
       {items.map((i) => (
         <ItemCard
@@ -108,20 +118,20 @@ export function Room() {
         />
       ))}
 
-      <form className="card card--plain" onSubmit={(e) => void addItem(e)} aria-label="Add a one-off item">
-        <label className="field__label" htmlFor="new-item">Add a one-off item to {room.label.toLowerCase()}</label>
+      <form className="card card--sunken" onSubmit={(e) => void addItem(e)} aria-label="Add a one-off item">
+        <label className="field__label" htmlFor="new-item">Add a one-off item to {roomDisplayName(room.label)}</label>
         <div className="row">
-          <input id="new-item" className="input" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="e.g. CEILING FAN" />
-          <button type="submit" className="btn" disabled={!newLabel.trim()}>ADD</button>
+          <input id="new-item" className="input" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="e.g. Ceiling fan" />
+          <button type="submit" className="btn" disabled={!newLabel.trim()}><Icon name="plus" size={18} /> Add</button>
         </div>
       </form>
 
-      <div className="btn-grid" style={{ marginTop: 4 }}>
-        <Link to={`/visits/${data.visit.id}`} className="btn">ALL ROOMS</Link>
+      <div className="btn-grid" style={{ marginTop: 8 }}>
+        <Link to={`/visits/${data.visit.id}`} className="btn">All rooms</Link>
         {next ? (
-          <Link to={`/visits/${data.visit.id}/rooms/${next.id}`} className="btn btn--primary">NEXT ROOM →</Link>
+          <Link to={`/visits/${data.visit.id}/rooms/${next.id}`} className="btn btn--primary">Next room <Icon name="chevronRight" size={18} /></Link>
         ) : (
-          <Link to={`/visits/${data.visit.id}/review`} className="btn btn--primary">REVIEW →</Link>
+          <Link to={`/visits/${data.visit.id}/review`} className="btn btn--primary">Review <Icon name="chevronRight" size={18} /></Link>
         )}
       </div>
     </div>

@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { issueBlockers, SCHEMES, type Blocker, type BlockerCode, type VisitBundle } from '@soc/shared';
 import { renderReportHtml } from '@soc/report';
-import { Corners } from '../components/fields';
+import { Icon, ScreenSkeleton, StatTile } from '../components/ui';
 import { SignatureBlock } from '../components/SignatureBlock';
 import { db } from '../lib/db';
 import { progressOf, relevantItems, useOnline } from '../lib/hooks';
@@ -53,7 +53,7 @@ export function Review() {
     if (data?.visit.status === 'issued') nav(`/visits/${data.visit.id}/done`, { replace: true });
   }, [data?.visit.status, data?.visit.id, nav]);
 
-  if (data === undefined || ref === undefined || session === undefined) return null;
+  if (data === undefined || ref === undefined || session === undefined) return <ScreenSkeleton cards={4} />;
   if (!data || !form) return <Navigate to="/" replace />;
 
   const { visit } = data;
@@ -86,18 +86,15 @@ export function Review() {
 
   return (
     <div>
-      <Link to={`/visits/${visit.id}`} className="back-link">← All rooms</Link>
+      <Link to={`/visits/${visit.id}`} className="back-link"><Icon name="chevronLeft" size={18} /> All rooms</Link>
+      <div className="kicker">Final step</div>
       <h1 className="title">Review &amp; sign off</h1>
 
       <div className="tiles">
-        {[
-          { v: data.rooms.filter((r) => r.present).length, l: 'Rooms' },
-          { v: `${p.graded}/${p.total}`, l: 'Items graded' },
-          { v: p.defects, l: 'Below good' },
-          { v: livePhotos, l: 'Photos' },
-        ].map((t) => (
-          <div key={t.l} className="tile"><Corners /><div className="tile__value">{t.v}</div><div className="tile__label">{t.l}</div></div>
-        ))}
+        <StatTile value={data.rooms.filter((r) => r.present).length} label="Rooms" />
+        <StatTile value={<>{p.graded}<span style={{ fontSize: 18, color: 'var(--muted)' }}>/{p.total}</span></>} label="Items graded" />
+        <StatTile value={p.defects} label="Below good" tone={p.defects ? 'alert' : undefined} />
+        <StatTile value={livePhotos} label="Photos" />
       </div>
 
       {contentBlockers.length > 0 ? (
@@ -109,11 +106,11 @@ export function Review() {
             {contentBlockers.slice(0, 60).map((b, i) => (
               <li key={`${b.code}-${b.itemRecordId ?? b.roomInstanceId ?? i}`}><Link to={blockerHref(visit.id, b)}>{b.message}</Link></li>
             ))}
-            {contentBlockers.length > 60 && <li className="small muted" style={{ padding: 10 }}>…and {contentBlockers.length - 60} more. Try MARK ALL AS GOOD on the rooms list.</li>}
+            {contentBlockers.length > 60 && <li className="more">…and {contentBlockers.length - 60} more. Try MARK ALL AS GOOD on the rooms list.</li>}
           </ul>
         </section>
       ) : (
-        <div className="notice" role="status">Everything required is captured. Check the draft with each person, collect signatures, then generate the report.</div>
+        <div className="notice notice--success" role="status">Everything required is captured. Check the draft with each person, collect signatures, then generate the report.</div>
       )}
 
       {uploading > 0 && (
@@ -151,12 +148,12 @@ export function Review() {
       {action?.status === 'failed' && <div className="notice notice--strong" role="alert" style={{ whiteSpace: 'pre-line' }}>Not issued: {action.error}</div>}
       {message && <div className="notice" role="status" style={{ whiteSpace: 'pre-line' }}>{message}</div>}
 
-      <button type="button" className="btn btn--primary btn--block" disabled={blockers.length > 0 || busy} onClick={() => void generate()}>
+      <button type="button" className="btn btn--primary btn--block btn--lg btn--shimmer" disabled={blockers.length > 0 || busy} onClick={() => void generate()}>
         {contentBlockers.length
-          ? `FIX ${contentBlockers.length} ISSUE${contentBlockers.length > 1 ? 'S' : ''} FIRST`
+          ? `Fix ${contentBlockers.length} issue${contentBlockers.length > 1 ? 's' : ''} first`
           : signatureBlockers.length
-            ? signatureBlockers.some((b) => b.code === 'OFFICER_SIGNATURE_MISSING') ? 'OFFICER SIGNATURE NEEDED' : 'SIGNATURES NEED RE-SIGNING'
-            : busy ? 'ISSUING…' : 'GENERATE THE SOC REPORT →'}
+            ? signatureBlockers.some((b) => b.code === 'OFFICER_SIGNATURE_MISSING') ? 'Officer signature needed' : 'Signatures need re-signing'
+            : busy ? 'Issuing…' : <><Icon name="file" size={20} /> Generate the SOC report</>}
       </button>
     </div>
   );

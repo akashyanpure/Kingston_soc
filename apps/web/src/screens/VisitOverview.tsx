@@ -1,7 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
-import { DEFECT_CONDITIONS, type ItemRecord } from '@soc/shared';
-import { AutoField, ProgressBar } from '../components/fields';
+import { DEFECT_CONDITIONS, roomDisplayName, type ItemRecord } from '@soc/shared';
+import { AutoField } from '../components/fields';
+import { Icon, ProgressRing, ScreenSkeleton } from '../components/ui';
 import { ItemCard } from '../components/ItemCard';
 import { PhotoThumbs } from '../components/PhotoThumbs';
 import { progressOf, relevantItems, useHashTarget } from '../lib/hooks';
@@ -23,15 +24,16 @@ export function VisitOverview() {
   const session = useSession();
   const form = formOf(ref);
   const [message, setMessage] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(0);
   const abbreviations = useMemo(() => (form ? parseAbbreviations(form.boilerplate.abbreviations) : []), [form]);
   const loc = useLocation();
   useHashTarget(!!data && !!form, loc.hash);
 
-  if (data === undefined || ref === undefined) return null;
+  if (data === undefined || ref === undefined) return <ScreenSkeleton cards={4} />;
   if (data === null) {
     return (
       <div>
-        <Link to="/" className="back-link">← My visits</Link>
+        <Link to="/" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
         <div className="notice notice--strong">This visit is not on this phone. Connect to download it.</div>
       </div>
     );
@@ -49,6 +51,7 @@ export function VisitOverview() {
   const doMarkAll = async () => {
     const n = await markAllGood(visit.id);
     syncEngine.notifyChange();
+    if (n) setCelebrate((c) => c + 1);
     setMessage(n ? `${n} ungraded item${n === 1 ? '' : 's'} marked Good. Now change only what is wrong.` : 'Nothing left to mark — every item in the present rooms is graded.');
   };
 
@@ -93,42 +96,66 @@ export function VisitOverview() {
 
   return (
     <div>
-      <Link to="/" className="back-link">← My visits</Link>
-      <div className="kicker">{visit.schemeCode} · {VISIT_TYPE_LABEL[visit.visitType]} · {property?.propertyType}</div>
-      <h1 className="title title--sm">{addressOf(property)}{property ? `, ${property.postcode}` : ''}</h1>
-
-      <div className="row small muted"><span>{p.graded} of {p.total} items graded · {p.defects} below good</span><span>{p.pct}%</span></div>
-      <ProgressBar pct={p.pct} label={`${p.pct}% of items graded`} large />
+      <Link to="/" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
+      <section className="card hero" aria-labelledby="visit-h">
+        <div>
+          <div className="chiprow">
+            <span className="pill pill--outline">{visit.schemeCode}</span>
+            <span className="pill">{VISIT_TYPE_LABEL[visit.visitType]}</span>
+            {property?.propertyType && <span className="pill">{property.propertyType}</span>}
+          </div>
+          <h1 id="visit-h" className="hero__addr">{addressOf(property)}</h1>
+          <div className="hero__meta">{property?.postcode}{property?.town ? ` · ${property.town}` : ''}</div>
+        </div>
+        <ProgressRing pct={p.pct} size={92} stroke={8} label={`${p.pct}% of items graded`}>
+          <span style={{ fontSize: 24 }}>{p.pct}<small>%</small></span>
+        </ProgressRing>
+        <div className="hero__stats">
+          <span><strong>{p.graded}</strong>of {p.total} graded</span>
+          <span><strong style={p.defects ? { color: 'var(--p-ink)' } : undefined}>{p.defects}</strong>below good</span>
+          <span><strong>{present.length}</strong>rooms</span>
+        </div>
+      </section>
 
       <div className="btn-grid">
-        <button type="button" className="btn btn--sm" onClick={() => void doMarkAll()}>MARK ALL AS GOOD</button>
-        <Link to={`/visits/${visit.id}/review`} className="btn btn--sm">REVIEW &amp; SIGN OFF</Link>
+        <button key={celebrate} type="button" className={`btn btn--primary${celebrate ? ' btn--celebrate' : ''}`} onClick={() => void doMarkAll()}>
+          <Icon name={celebrate ? 'check' : 'sparkle'} size={18} /> Mark all as good
+        </button>
+        <Link to={`/visits/${visit.id}/review`} className="btn">Review &amp; sign <Icon name="chevronRight" size={18} /></Link>
       </div>
-      {message && <div className="notice" role="status">{message}</div>}
+      {message && <div className={`notice${celebrate ? ' notice--success' : ''}`} role="status">{message}</div>}
 
       <h2 className="section-label">Rooms</h2>
       {present.length === 0 && <div className="notice notice--grey">No rooms marked present. Add rooms below.</div>}
+      <div className="room-grid">
       {present.map((r) => {
         const ri = items.filter((i) => i.roomInstanceId === r.id);
         const rp = progressOf(ri);
         const missingPhoto = ri.filter((i) => i.condition && DEFECT_CONDITIONS.includes(i.condition) && photosByItem(i.id).length === 0).length;
         const noWide = !r.widePhotoId || !photos.some((ph) => ph.id === r.widePhotoId && !ph.deletedAt);
-        const flags = [
-          rp.defects && `${rp.defects} below good`,
-          missingPhoto && `${missingPhoto} photo${missingPhoto > 1 ? 's' : ''} missing`,
-          noWide && 'wide photo needed',
-        ].filter(Boolean);
+        const done = rp.total > 0 && rp.graded === rp.total && !noWide && !missingPhoto;
         return (
           <Link key={r.id} to={`/visits/${visit.id}/rooms/${r.id}`} className="room-row">
-            <span className="row">
-              <span className="room-row__name">{r.label}</span>
-              <span className="small muted">{rp.graded}/{rp.total}</span>
+            <ProgressRing pct={rp.pct} size={46} stroke={4} label={`${rp.pct}% graded`}>
+              {done ? <Icon name="check" size={18} style={{ color: 'var(--brass-ink)' }} /> : <span style={{ fontSize: 13 }}>{rp.pct}</span>}
+            </ProgressRing>
+            <span>
+              <span className="room-row__name">{roomDisplayName(r.label)}</span>
+              <span className="room-row__meta num">{rp.graded}/{rp.total} graded</span>
+              {(rp.defects > 0 || missingPhoto > 0 || noWide) && (
+                <span className="room-row__flag">
+                  {rp.defects > 0 && <span className="pill pill--P num">{rp.defects} below good</span>}
+                  {missingPhoto > 0 && <span className="pill pill--alert num">{missingPhoto} photo{missingPhoto > 1 ? 's' : ''} missing</span>}
+                  {noWide && <span className="pill pill--F"><Icon name="camera" size={13} /> wide photo</span>}
+                </span>
+              )}
             </span>
-            <ProgressBar pct={rp.pct} label={`${r.label}: ${rp.pct}% graded`} />
-            {flags.length > 0 && <span className="room-row__flag" style={{ display: 'block' }}>{flags.join(' · ')}</span>}
+            <Icon name="chevronRight" size={18} className="room-row__chev" />
           </Link>
         );
       })}
+      </div>
+      <div style={{ height: 12 }} />
 
       <details className="disclosure">
         <summary>Rooms in this property ({present.length}/{rooms.length})</summary>
@@ -193,7 +220,7 @@ export function VisitOverview() {
                   </div>
                 )}
                 <button type="button" className="btn btn--sm" onClick={() => void meterPhoto(m.code)}>
-                  {photo.some((x) => !x.deletedAt) ? 'RETAKE METER PHOTO' : '+ METER PHOTO'}
+                  {photo.some((x) => !x.deletedAt) ? 'Retake meter photo' : '+ Meter photo'}
                 </button>
                 <PhotoThumbs photos={photo} label={`${m.label} meter`} />
               </fieldset>
@@ -203,14 +230,14 @@ export function VisitOverview() {
       </details>
 
       <details className="disclosure" id="misc">
-        <summary>{form.miscellaneous.label} ({misc.length})</summary>
+        <summary>{roomDisplayName(form.miscellaneous.label)} ({misc.length})</summary>
         <div className="disclosure__body">
           <p className="small muted">Items not in the room lists. Name each one.</p>
           {misc.map((i) => (
             <ItemCard key={i.id} item={i} form={form} roomLabel={form.miscellaneous.label} phrases={phrasesFor(ref, i.itemCode)}
               abbreviations={abbreviations} photos={photosByItem(i.id)} editableLabel />
           ))}
-          <button type="button" className="btn btn--block" onClick={addMisc}>+ ADD MISCELLANEOUS ITEM</button>
+          <button type="button" className="btn btn--block" onClick={addMisc}><Icon name="plus" size={18} /> Add miscellaneous item</button>
         </div>
       </details>
 
@@ -228,7 +255,7 @@ export function VisitOverview() {
         </div>
       </details>
 
-      <Link to={`/visits/${visit.id}/review`} className="btn btn--primary btn--block" style={{ marginTop: 6 }}>REVIEW &amp; SIGN OFF →</Link>
+      <Link to={`/visits/${visit.id}/review`} className="btn btn--primary btn--block btn--lg" style={{ marginTop: 8 }}>Review &amp; sign off <Icon name="chevronRight" size={18} /></Link>
     </div>
   );
 }
@@ -259,7 +286,7 @@ function NoteForm({ visitId, defaultAddedBy }: { visitId: string; defaultAddedBy
         <textarea id="nf-note" className="textarea" value={note} onChange={(e) => setNote(e.target.value)} /></div>
       <div className="field"><label className="field__label" htmlFor="nf-signed">Signed (initials of both parties)</label>
         <input id="nf-signed" className="input" value={signed} onChange={(e) => setSigned(e.target.value)} /></div>
-      <button type="submit" className="btn btn--block" disabled={!note.trim() || !addedBy.trim()}>+ ADD NOTE</button>
+      <button type="submit" className="btn btn--block" disabled={!note.trim() || !addedBy.trim()}><Icon name="plus" size={18} /> Add note</button>
     </form>
   );
 }

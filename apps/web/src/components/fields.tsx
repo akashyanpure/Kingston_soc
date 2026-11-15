@@ -74,19 +74,15 @@ export function QtyStepper({ value, onChange, itemLabel, disabled }: { value: nu
   return (
     <span className="stepper" role="group" aria-label={`Quantity of ${itemLabel}`}>
       <button type="button" disabled={disabled || n <= 0} onClick={() => onChange(Math.max(0, n - 1))} aria-label={`Fewer ${itemLabel}`}>−</button>
-      <output aria-live="polite" aria-label="Quantity">{value ?? '–'}</output>
+      <output aria-live="polite" aria-label={value === null ? 'Quantity not set' : 'Quantity'} className={value === null ? 'is-empty' : undefined}>{value ?? 0}</output>
       <button type="button" disabled={disabled} onClick={() => onChange(n + 1)} aria-label={`More ${itemLabel}`}>+</button>
     </span>
   );
 }
 
+/** Former blueprint registration marks; the ivory design uses soft cards instead. */
 export function Corners() {
-  return (
-    <>
-      <i className="corner tl" aria-hidden="true" /><i className="corner tr" aria-hidden="true" />
-      <i className="corner bl" aria-hidden="true" /><i className="corner br" aria-hidden="true" />
-    </>
-  );
+  return null;
 }
 
 export function ProgressBar({ pct, label, large }: { pct: number; label: string; large?: boolean }) {

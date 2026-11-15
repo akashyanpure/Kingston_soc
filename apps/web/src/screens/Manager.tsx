@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { VISIT_STATUSES, type VisitStatus, type VisitSummary } from '@soc/shared';
-import { Corners } from '../components/fields';
+import { StatTile } from '../components/ui';
 import { api } from '../lib/api';
 import { useOnline } from '../lib/hooks';
 import { useSession } from '../lib/session';
@@ -45,13 +45,11 @@ export function Manager() {
 
   return (
     <div>
-      <div className="kicker">Private Sector Schemes</div>
+      <div className="kicker">Private Sector Schemes · Manager</div>
       <h1 className="title">Inventory operations</h1>
       {!online && <div className="notice notice--grey">The manager view needs a connection.</div>}
       <div className="kpis">
-        {kpis.map((k) => (
-          <div key={k.l} className="tile"><Corners /><div className="tile__value" style={{ fontSize: 32 }}>{k.v}</div><div className="tile__label">{k.l}</div></div>
-        ))}
+        {kpis.map((k, i) => <StatTile key={k.l} value={k.v} label={k.l} tone={i === 2 ? 'brass' : i === 3 && k.v ? 'alert' : undefined} />)}
       </div>
       <div className="filters" role="search">
         <div className="field"><label className="field__label" htmlFor="m-q">Search</label>
@@ -76,14 +74,17 @@ export function Manager() {
           <tbody>
             {rows.map((v) => (
               <tr key={v.id}>
-                <td>{v.status === 'issued' ? <Link to={`/visits/${v.id}/done`}>{v.address}</Link> : v.address}<div className="small muted">{v.postcode}{v.reportNumber ? ` · ${v.reportNumber}` : ''}</div></td>
+                <td><span className="addr">{v.status === 'issued' ? <Link to={`/visits/${v.id}/done`}>{v.address}</Link> : v.address}</span><div className="small muted">{v.postcode}{v.reportNumber ? ` · ${v.reportNumber}` : ''}</div></td>
                 <td className="muted">{v.schemeCode}</td>
                 <td className="muted">{VISIT_TYPE_LABEL[v.visitType]}</td>
                 <td className="muted">{v.officerName}</td>
                 <td className="muted">{v.scheduledAt ? new Date(v.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</td>
-                <td>{v.itemsGraded}/{v.itemsTotal}</td>
-                <td>{v.defects}</td>
-                <td><span className={`pill${v.status === 'issued' ? ' pill--dark' : v.status === 'in_progress' ? ' pill--teal' : ''}`}>{STATUS_LABEL[v.status]}</span></td>
+                <td className="num" style={{ whiteSpace: 'nowrap' }}>
+                  <span className="mini-bar" aria-hidden="true"><span style={{ width: `${v.itemsTotal ? Math.round((v.itemsGraded / v.itemsTotal) * 100) : 0}%` }} /></span>
+                  {v.itemsGraded}/{v.itemsTotal}
+                </td>
+                <td className="num">{v.defects ? <span className="pill pill--P">{v.defects}</span> : <span className="muted">0</span>}</td>
+                <td><span className={`pill${v.status === 'issued' ? ' pill--brass' : v.status === 'in_progress' ? ' pill--teal' : ''}`}>{STATUS_LABEL[v.status]}</span></td>
               </tr>
             ))}
             {visits && rows.length === 0 && <tr><td colSpan={8} className="muted">No visits match.</td></tr>}

@@ -1,22 +1,24 @@
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router';
+import { KINGSTON_CREST } from '@soc/report';
 import { useQueueCounts, useSyncStatus } from '../lib/hooks';
 import { useSession } from '../lib/session';
 import { syncEngine } from '../lib/sync';
+import { Icon, type IconName } from './ui';
 
-/** OFFLINE · N QUEUED / N QUEUED / SYNCING / ALL SAVED — tap to sync now. */
+/** Offline · N queued / N queued / Syncing / All saved — tap to sync now. */
 export function SyncBanner() {
   const status = useSyncStatus();
   const q = useQueueCounts();
   let text: string;
   let mod: string;
   if (!status.online) {
-    text = q.total ? `Offline · ${q.total} queued` : 'Offline · all saved on phone';
+    text = q.total ? `Offline · ${q.total} queued` : 'Offline · saved on phone';
     mod = 'offline';
   } else if (status.phase === 'syncing') {
-    text = q.total ? `Syncing · ${q.total} queued` : 'Syncing';
+    text = q.total ? `Syncing · ${q.total}` : 'Syncing';
     mod = 'syncing';
   } else if (status.phase === 'auth') {
-    text = q.total ? `Sign in to sync · ${q.total} queued` : 'Signed out';
+    text = q.total ? `Sign in to sync · ${q.total}` : 'Signed out';
     mod = 'problem';
   } else if (q.total) {
     text = status.phase === 'error' ? `${q.total} queued · retrying` : `${q.total} queued`;
@@ -37,7 +39,7 @@ export function SyncBanner() {
       onClick={() => void syncEngine.syncNow({ pull: true })}
       title={[detail || 'Nothing waiting to upload', status.lastError].filter(Boolean).join(' — ')}
     >
-      <span className="sync-pill__dot" aria-hidden="true" />
+      <span className="sync-pill__dot" aria-hidden="true">{mod === 'saved' && <Icon name="check" size={11} />}</span>
       <span role="status" aria-live="polite">{text}</span>
       <span className="visually-hidden">. Tap to sync now.</span>
     </button>
@@ -52,25 +54,39 @@ export function RequireSession() {
   return <Outlet />;
 }
 
+function Tab({ to, icon, label, end }: { to: string; icon: IconName; label: string; end?: boolean }) {
+  return (
+    <NavLink to={to} end={end}>
+      <span className="tabbar__pill"><Icon name={icon} size={20} /></span>
+      {label}
+    </NavLink>
+  );
+}
+
 export function Shell({ wide }: { wide?: boolean }) {
   const session = useSession();
   const isManager = session?.role === 'manager' || session?.role === 'admin';
   return (
     <div className={`shell${wide ? ' shell--wide' : ''}`}>
       <a href="#main" className="skip-link">Skip to content</a>
-      <header className="statusbar">
-        <Link to="/" className="statusbar__brand">KINGSTON SOC</Link>
-        <SyncBanner />
-      </header>
+      {session && (
+        <header className="statusbar">
+          <Link to="/" className="statusbar__brand" aria-label="Kingston Schedule of Condition, home">
+            <img src={KINGSTON_CREST} alt="" />
+            <span>Kingston <em>SOC</em></span>
+          </Link>
+          <SyncBanner />
+        </header>
+      )}
       <main id="main" className="shell__main" tabIndex={-1}>
         <Outlet />
       </main>
       {session && (
         <nav className="tabbar" aria-label="Main">
-          <NavLink to="/" end>VISITS</NavLink>
-          <NavLink to="/visits/new">NEW VISIT</NavLink>
-          {isManager && <NavLink to="/manager">MANAGER</NavLink>}
-          <NavLink to="/account">ACCOUNT</NavLink>
+          <Tab to="/" end icon="home" label="Visits" />
+          <Tab to="/visits/new" icon="plus" label="New visit" />
+          {isManager && <Tab to="/manager" icon="grid" label="Manager" />}
+          <Tab to="/account" icon="user" label="Account" />
         </nav>
       )}
     </div>

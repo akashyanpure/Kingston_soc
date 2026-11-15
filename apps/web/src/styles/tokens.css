@@ -1,52 +1,73 @@
-/* Design tokens — soc-template-form decision 7 (prototype "Kingston retone" of Industry). */
+/*
+ * Design tokens — "Ivory field notebook".
+ * Warm ivory paper, Kingston teal ink, editorial serif headlines, tactile controls.
+ * Every text/background pair is checked for WCAG 2.2 AA in src/test/contrast.test.ts.
+ */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../assets/fonts/fraunces-latin-opsz-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../assets/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   /* type */
-  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
-  --font-body: 'Barlow', system-ui, sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --weight-heading: 600;
+
+  /* paper */
+  --paper: #faf6ee;
+  --raised: #fffdf8;
+  --sunken: #f3ede1;
+  --hairline: rgba(60, 48, 30, 0.12);
+  --hairline-strong: rgba(60, 48, 30, 0.22);
+  --shadow: 0 1px 2px rgba(60, 48, 30, 0.06), 0 8px 24px -12px rgba(60, 48, 30, 0.18);
+  --shadow-lift: 0 2px 4px rgba(60, 48, 30, 0.08), 0 16px 32px -14px rgba(60, 48, 30, 0.28);
+
+  /* ink */
+  --ink: #1f2523;
+  --muted: #5e625c;
+  --faint: #8a8c84; /* decorative only (3.2:1) — never for essential text */
 
   /* brand */
-  --teal: #17708c;
-  --teal-hover: #14657f;
-  --deep-700: #0f5568;
-  --deep-800: #0b3d4c;
-  --deep-900: #072932;
-  --tint-200: #cfe8ef;
-  --tint-100: #eaf5f8;
+  --teal: #0f5e6e;
+  --teal-hover: #0b4c5a;
+  --teal-tint: #e3efee;
+  --brass: #b98a2e; /* accents, rings, seal — not for small text */
+  --brass-ink: #7a5a17; /* brass-coloured text */
+  --brass-tint: #f6ebd3;
+  --danger: #8e1f2f;
 
-  /* neutrals */
-  --text: #1d1f20;
-  --muted: #5d5d60;
-  --rule: #e0e1e3;
-  --page: #f8f8f9;
-  --ground: #f2f2f3;
-  --surface: #e9e9ea;
-  --white: #ffffff;
-  --on-dark: #f2f2f3;
-  --divider: rgba(29, 31, 32, 0.16);
-  --divider-soft: rgba(29, 31, 32, 0.08);
-  --hover: rgba(29, 31, 32, 0.07);
-  --stripe-a: #d9dade;
-  --stripe-b: #ececed;
+  /* grades: hue (dots, rings, borders) · ink (text on tint) · tint (badge bg) · solid (selected pill bg, ivory text) */
+  --g-hue: #2f7a5b;  --g-ink: #276b4f;  --g-tint: #e6f1ea;  --g-solid: #2f7a5b;
+  --f-hue: #a86f12;  --f-ink: #8a5a0b;  --f-tint: #fbf0d9;  --f-solid: #8a5a0b;
+  --p-hue: #b4532a;  --p-ink: #9a4521;  --p-tint: #f8e4da;  --p-solid: #9a4521;
+  --u-hue: #8e1f2f;  --u-ink: #8e1f2f;  --u-tint: #f6dcdf;  --u-solid: #8e1f2f;
+  --na-hue: #6b6b63; --na-ink: #5c5c55; --na-tint: #eceae3; --na-solid: #6b6b63;
 
-  /* grade pills: background / foreground */
-  --grade-g-bg: #cfe8ef; --grade-g-fg: #0b3d4c;
-  --grade-f-bg: #6fb4c9; --grade-f-fg: #072932;
-  --grade-p-bg: #0f5568; --grade-p-fg: #f2f2f3;
-  --grade-u-bg: #072932; --grade-u-fg: #f2f2f3;
-  --grade-na-bg: #e0e1e3; --grade-na-fg: #5d5d60;
-
-  /* layout */
-  --space-1: 4px;
-  --space-2: 7px;
-  --space-3: 10px;
-  --space-4: 14px;
-  --space-6: 20px;
-  --space-8: 28px;
-  --radius: 0;
-  --target: 44px; /* WCAG 2.2 target size; we go above the 24px AA minimum */
+  /* shape + space (4px grid) */
+  --r-card: 14px;
+  --r-input: 12px;
+  --r-pill: 999px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
+  --target: 44px;
   --gutter: 16px;
-  --phone-max: 520px;
+  --column: 560px;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 150ms;
+  --base: 220ms;
   --focus: 2px solid var(--teal);
 }

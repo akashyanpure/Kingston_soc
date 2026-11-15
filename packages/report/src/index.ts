@@ -18,3 +18,4 @@ export interface ReportSnapshot {
   officerName: string;
 }
 export { sampleBundle } from './sample.js';
+export { KINGSTON_CREST, LOGO_ALT } from './logo.js';

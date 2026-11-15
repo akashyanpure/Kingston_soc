@@ -41,7 +41,7 @@ export function Account() {
           {status.lastError && <><br />Last error: {status.lastError}</>}
         </p>
       </div>
-      <button type="button" className="btn btn--block" onClick={() => void syncEngine.syncNow({ pull: true })}>SYNC NOW</button>
+      <button type="button" className="btn btn--block" onClick={() => void syncEngine.syncNow({ pull: true })}>Sync now</button>
 
       {((rejected?.length ?? 0) > 0 || (failed?.length ?? 0) > 0) && (
         <>
@@ -50,12 +50,12 @@ export function Account() {
             {rejected?.map((m) => <li key={m.seq} style={{ padding: 10 }} className="small">{m.entity} {m.id.slice(0, 8)}… — {m.error}</li>)}
             {failed?.map((a) => <li key={a.seq} style={{ padding: 10 }} className="small">{a.kind} — {a.error}</li>)}
           </ul>
-          <button type="button" className="btn btn--block" onClick={() => void retry()}>RETRY ALL</button>
+          <button type="button" className="btn btn--block" onClick={() => void retry()}>Retry all</button>
         </>
       )}
 
       <p className="mono muted" style={{ marginTop: 18 }}>Device {deviceId}</p>
-      <button type="button" className="btn btn--block btn--danger" onClick={() => void signOut()}>SIGN OUT</button>
+      <button type="button" className="btn btn--block btn--danger" onClick={() => void signOut()}>Sign out</button>
     </div>
   );
 }

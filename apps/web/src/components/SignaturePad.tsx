@@ -27,7 +27,7 @@ export function SignaturePad({ label, value, onChange, disabled }: SignaturePadP
     ctx.lineWidth = 2.4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#072932';
+    ctx.strokeStyle = '#1f2523';
     if (value) {
       const img = new Image();
       img.onload = () => {
@@ -87,7 +87,7 @@ export function SignaturePad({ label, value, onChange, disabled }: SignaturePadP
           ref={canvasRef} role="img" aria-label={value ? `${label}: signed` : `${label}: signature pad, sign with your finger`}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         />
-        {!value && <div className="sigpad__hint" aria-hidden="true">Sign here with a finger</div>}
+        {!value && <div className="sigpad__hint" aria-hidden="true">Sign above the line</div>}
       </div>
       <div className="row" style={{ marginTop: 4 }}>
         <span className="small muted">{value ? 'Ready — confirm below' : 'Pad is empty'}</span>

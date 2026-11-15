@@ -8,10 +8,10 @@ import { fileURLToPath } from 'node:url';
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
 mkdirSync(out, { recursive: true });
 
-const TEAL = [0x17, 0x70, 0x8c];
-const LIGHT = [0xcf, 0xe8, 0xef];
-const MID = [0x6f, 0xb4, 0xc9];
-const WHITE = [0xf2, 0xf2, 0xf3];
+const TEAL = [0x0f, 0x5e, 0x6e];
+const LIGHT = [0xe3, 0xef, 0xee];
+const MID = [0xb9, 0x8a, 0x2e]; // brass
+const WHITE = [0xfa, 0xf6, 0xee]; // ivory
 
 // Mark on a 16-unit grid: three bars (G/F/P pills) + a tick block, inside a 60% safe zone.
 const rects = [

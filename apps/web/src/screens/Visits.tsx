@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Visit } from '@soc/shared';
-import { Corners, ProgressBar } from '../components/fields';
+import { EmptyState, Icon, ProgressRing, ScreenSkeleton } from '../components/ui';
 import { db } from '../lib/db';
 import { progressOf, relevantItems, useOnline } from '../lib/hooks';
 import { useSession } from '../lib/session';
@@ -67,33 +67,44 @@ export function Visits() {
     return g;
   }, [rows]);
 
-  const dateLine = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const dateLine = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const openDefects = [...groups.today, ...groups.week, ...groups.open].reduce((n, r) => n + r.defects, 0);
+
+  if (rows === undefined) return <ScreenSkeleton />;
 
   return (
     <div>
-      <div className="row row--top" style={{ marginBottom: 14 }}>
-        <div>
-          <div className="kicker">{dateLine} · {session?.name}</div>
-          <h1 className="title" style={{ marginBottom: 0 }}>My visits</h1>
+      <header className="greeting">
+        <div className="kicker">My visits</div>
+        <h1 className="greeting__hello">{greeting}, {session?.name}</h1>
+        <p className="greeting__date">{dateLine}</p>
+        <div className="daystats">
+          <span className="pill pill--teal"><span className="num">{groups.today.length}</span>&nbsp;today</span>
+          <span className="pill pill--outline"><span className="num">{groups.today.length + groups.week.length}</span>&nbsp;this week</span>
+          {openDefects > 0 && <span className="pill pill--P"><span className="num">{openDefects}</span>&nbsp;below good</span>}
         </div>
-        <div className="small muted" style={{ textAlign: 'right' }}>
-          {groups.today.length} today<br />{groups.today.length + groups.week.length} this week
-        </div>
-      </div>
+      </header>
 
       {!online && (
-        <div className="notice">No signal. Everything is saved on the phone and uploads itself when you're back in range.</div>
+        <div className="notice notice--brass">No signal. Everything is saved on the phone and uploads itself when you're back in range.</div>
       )}
 
-      {rows && rows.length === 0 && (
-        <div className="notice notice--grey">No visits on this phone yet. Visits assigned to you appear here when you have signal, or start one now.</div>
+      {rows.length === 0 && (
+        <EmptyState icon="door" title="No visits on this phone yet">
+          Visits assigned to you appear here when you have signal — or start one now.
+        </EmptyState>
       )}
 
       <VisitGroup title="Today" rows={groups.today} />
       <VisitGroup title="This week" rows={groups.week} />
       <VisitGroup title="Other open visits" rows={groups.open} />
 
-      <Link to="/visits/new" className="btn btn--primary btn--block" style={{ marginTop: 4 }}>+ START A NEW VISIT</Link>
+      <Link to="/visits/new" className="btn btn--primary btn--block btn--lg" style={{ marginTop: 8 }}>
+        <Icon name="plus" /> Start a new visit
+      </Link>
 
       <VisitGroup title="Issued" rows={groups.issued.slice(0, 10)} />
     </div>
@@ -105,27 +116,30 @@ function VisitGroup({ title, rows }: { title: string; rows: Row[] }) {
   return (
     <section aria-label={title}>
       <h2 className="section-label">{title}</h2>
-      {rows.map((r) => {
-        const href = r.visit.status === 'issued' ? `/visits/${r.visit.id}/done` : `/visits/${r.visit.id}`;
+      {rows.map((r, i) => {
+        const issued = r.visit.status === 'issued';
+        const href = issued ? `/visits/${r.visit.id}/done` : `/visits/${r.visit.id}`;
         const time = r.visit.scheduledAt ? r.when.toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : 'Unscheduled';
         return (
-          <Link key={r.visit.id} to={href} className="card card--plain visit-card">
-            <Corners />
-            <div className="row row--top">
-              <div>
-                <div className="kicker">{r.visit.schemeCode} · {VISIT_TYPE_LABEL[r.visit.visitType]}</div>
-                <div className="visit-card__addr">{r.address}</div>
-                <div className="small muted">
-                  {r.postcode} · {time}
-                  {r.visit.reportNumber ? ` · ${r.visit.reportNumber}` : ''}
-                </div>
+          <Link key={r.visit.id} to={href} className="card visit-card enter" style={{ ['--i' as string]: i }}>
+            <div>
+              <div className="chiprow">
+                <span className="pill pill--outline">{r.visit.schemeCode}</span>
+                <span className="pill">{VISIT_TYPE_LABEL[r.visit.visitType]}</span>
+                {issued && <span className="pill pill--brass">Issued</span>}
               </div>
-              <span className={`pill${r.visit.status === 'issued' ? ' pill--dark' : r.pct ? ' pill--teal' : ''}`}>{STATUS_LABEL[r.visit.status]}</span>
+              <div className="visit-card__addr">{r.address}</div>
+              <div className="visit-card__meta">
+                {r.postcode} · {time}
+                {r.visit.reportNumber ? ` · ${r.visit.reportNumber}` : ''}
+              </div>
+              <div className="visit-card__foot">
+                <span className="small muted num">{r.graded}/{r.total} graded</span>
+                {r.defects > 0 && <span className="pill pill--P num">{r.defects} below good</span>}
+                {!issued && <span className={`pill${r.pct ? ' pill--teal' : ''}`}>{STATUS_LABEL[r.visit.status]}</span>}
+              </div>
             </div>
-            <div className="small muted" style={{ marginTop: 6 }}>
-              {r.graded}/{r.total} graded{r.defects ? ` · ${r.defects} below good` : ''}
-            </div>
-            <ProgressBar pct={r.pct} label={`${r.address}: ${r.pct}% graded`} />
+            <ProgressRing pct={r.pct} size={68} tone={issued ? 'brass' : 'teal'} label={`${r.address}: ${r.pct}% graded`} />
           </Link>
         );
       })}

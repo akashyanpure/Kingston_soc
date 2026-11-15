@@ -15,6 +15,7 @@ import { useSession } from '../lib/session';
 import { mergeBundle, syncEngine } from '../lib/sync';
 import { createVisitLocally } from '../lib/visitFactory';
 import { VISIT_TYPE_LABEL, addressOf } from '../lib/visitData';
+import { Icon } from '../components/ui';
 
 type NewProp = Omit<CreatePropertyRequest, 'id' | 'landlord'> & { landlordName: string; landlordCompany: string; landlordEmail: string; landlordPhone: string };
 const EMPTY_PROP: NewProp = {
@@ -82,7 +83,7 @@ export function NewVisit() {
         <Link to="/" className="back-link">← My visits</Link>
         <h1 className="title">New visit</h1>
         <div className="notice notice--strong">The form has not been downloaded to this phone yet. Connect once to fetch it, then you can start visits offline.</div>
-        <button type="button" className="btn btn--block" onClick={() => void syncEngine.syncNow({ pull: true })}>TRY AGAIN</button>
+        <button type="button" className="btn btn--block" onClick={() => void syncEngine.syncNow({ pull: true })}>Try again</button>
       </div>
     );
   }
@@ -157,7 +158,8 @@ export function NewVisit() {
 
   return (
     <form onSubmit={(e) => void submit(e)}>
-      <Link to="/" className="back-link">← My visits</Link>
+      <Link to="/" className="back-link"><Icon name="chevronLeft" size={18} /> My visits</Link>
+      <div className="kicker">Start an inspection</div>
       <h1 className="title">New visit</h1>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
@@ -167,7 +169,7 @@ export function NewVisit() {
             <div className="visit-card__addr">{addressOf(selected)}</div>
             <div className="small muted">{selected.postcode}{selected.uprn ? ` · UPRN ${selected.uprn}` : ''} · {selected.propertyType}</div>
             {selected.landlord && <div className="small">Landlord: {selected.landlord.company ?? selected.landlord.name}</div>}
-            <button type="button" className="btn btn--sm" style={{ marginTop: 8 }} onClick={() => setSelected(null)}>CHANGE PROPERTY</button>
+            <button type="button" className="btn btn--sm" style={{ marginTop: 8 }} onClick={() => setSelected(null)}>Change property</button>
           </div>
         ) : creating ? (
           <div className="card">
@@ -197,7 +199,7 @@ export function NewVisit() {
                 </div>
               </>
             )}
-            <button type="button" className="btn btn--sm" onClick={() => setCreating(false)}>SEARCH INSTEAD</button>
+            <button type="button" className="btn btn--sm" onClick={() => setCreating(false)}>Search instead</button>
           </div>
         ) : (
           <>
@@ -207,7 +209,7 @@ export function NewVisit() {
               <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0' }} aria-label="Matching properties">
                 {results.map((p) => (
                   <li key={p.id}>
-                    <button type="button" className="room-row" onClick={() => setSelected(p)}>
+                    <button type="button" className="room-row room-row--simple" onClick={() => setSelected(p)}>
                       <span className="room-row__name">{addressOf(p)}</span>
                       <span className="small muted" style={{ display: 'block' }}>{p.postcode}{p.landlord ? ` · ${p.landlord.company ?? p.landlord.name}` : ''}</span>
                     </button>
@@ -219,7 +221,7 @@ export function NewVisit() {
               <p className="small muted" style={{ marginTop: 6 }}>{online ? 'No matching property.' : 'No match on this phone (offline search only covers properties already downloaded).'}</p>
             )}
             <button type="button" className="btn btn--block" style={{ marginTop: 8 }} onClick={() => { setCreating(true); setNp({ ...EMPTY_PROP, addressLine1: query }); }}>
-              + ADD A NEW PROPERTY
+              <Icon name="plus" size={18} /> Add a new property
             </button>
           </>
         )}
@@ -230,7 +232,7 @@ export function NewVisit() {
         <div className="choice-grid">
           {schemes.map((s) => (
             <button key={s.code} type="button" className="choice" aria-pressed={scheme === s.code} onClick={() => setScheme(s.code)}>
-              {s.code} <span className="small" style={{ display: 'block', fontFamily: 'var(--font-body)', fontWeight: 400 }}>{s.name}</span>
+              {s.code}<small>{s.name}</small>
             </button>
           ))}
         </div>
@@ -265,13 +267,13 @@ export function NewVisit() {
         ))}
       </fieldset>
 
-      <div className="notice notice--grey" style={{ marginTop: 12 }} aria-live="polite">
+      <div className="notice" style={{ marginTop: 16 }} aria-live="polite">
         Will build <strong>&nbsp;{roomCount} rooms&nbsp;</strong> / <strong>&nbsp;{itemCount} items&nbsp;</strong> from form v{ref.formVersion.version}.
         {!online && ' Offline: the visit is built on this phone and uploads later.'}
       </div>
       {error && <p className="error-text" role="alert">{error}</p>}
-      <button type="submit" className="btn btn--primary btn--block" disabled={busy || !propertyReady || roomCount === 0}>
-        {busy ? 'BUILDING…' : 'BUILD THE INVENTORY →'}
+      <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={busy || !propertyReady || roomCount === 0}>
+        {busy ? 'Building…' : 'Build the inventory →'}
       </button>
     </form>
   );

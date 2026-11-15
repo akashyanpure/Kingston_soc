@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { photoStamp, roomDisplayName } from '@soc/shared';
+import { Icon } from '../components/ui';
 import { useBlobUrl } from '../lib/hooks';
 import { attachPhoto, processPhoto, roomPosition, type Coords, type PhotoTarget, type ProcessedPhoto } from '../lib/photo';
 import { useSession } from '../lib/session';
@@ -115,11 +116,12 @@ export function Camera() {
     }
   };
 
+  const attachLabel = kind === 'wide' ? 'Use as wide photo' : kind === 'meter' ? 'Attach to meter' : 'Attach to item';
   return (
-    <div>
-      <button type="button" className="back-link" onClick={() => nav(returnTo, { replace: true })}>← Cancel</button>
+    <div className="camera">
+      <button type="button" className="back-link" onClick={() => nav(returnTo, { replace: true })}><Icon name="chevronLeft" size={18} /> Cancel</button>
       <div className="kicker">Evidence photo</div>
-      <h1 className="title title--sm">{title}</h1>
+      <h1 className="title title--sm" style={{ marginBottom: 14 }}>{title}</h1>
       {!target && <p className="error-text" role="alert">Nothing to attach this photo to.</p>}
 
       <div className="viewfinder">
@@ -128,36 +130,46 @@ export function Camera() {
         ) : (
           <>
             <video ref={videoRef} playsInline muted autoPlay aria-label="Camera viewfinder" hidden={mode !== 'live'} />
-            {mode !== 'live' && <span className="mono" style={{ color: '#f2f2f3' }}>{mode === 'starting' ? 'Starting camera…' : 'Use the button below to open the camera'}</span>}
+            {mode !== 'live' && (
+              <div className="viewfinder__hint">
+                <Icon name="camera" size={34} />
+                <span>{mode === 'starting' ? 'Starting camera…' : "Opens your phone's camera"}</span>
+              </div>
+            )}
+            {mode === 'live' && <div className="viewfinder__frame" aria-hidden="true" />}
             <div className="viewfinder__stamp" aria-hidden="true">{stampFor(now, null).replace('GPS unavailable', 'GPS on capture')}</div>
           </>
         )}
       </div>
-      <p className="small muted" style={{ margin: '10px 0 12px' }}>
+      <p className="small muted" style={{ margin: '12px 2px 0' }}>
         The stamp is burned into the image, so the photo can't drift away from the item, the property or the date.
       </p>
       {error && <p className="error-text" role="alert">{error}</p>}
 
       {shot ? (
-        <div className="btn-grid">
-          <button type="button" className="btn" onClick={() => setShot(null)} disabled={busy}>RETAKE</button>
-          <button type="button" className="btn btn--primary" onClick={() => void attach()} disabled={busy || !target}>
-            {kind === 'wide' ? 'USE AS WIDE PHOTO' : kind === 'meter' ? 'ATTACH TO METER' : 'ATTACH TO ITEM'}
+        <div className="btn-grid" style={{ marginTop: 20 }}>
+          <button type="button" className="btn btn--lg" onClick={() => setShot(null)} disabled={busy}>Retake</button>
+          <button type="button" className="btn btn--primary btn--lg" onClick={() => void attach()} disabled={busy || !target}>
+            <Icon name="check" size={18} /> {attachLabel}
           </button>
         </div>
       ) : mode === 'live' ? (
-        <button type="button" className="shutter" aria-label="Take photo" disabled={busy}
-          onClick={() => videoRef.current && void capture(videoRef.current)} />
+        <div className="camera-controls">
+          <span />
+          <button type="button" className="shutter" aria-label="Take photo" disabled={busy}
+            onClick={() => videoRef.current && void capture(videoRef.current)} />
+          <span />
+        </div>
       ) : (
-        <>
+        <div style={{ marginTop: 20 }}>
           <input
             ref={fileRef} id="photo-file" type="file" accept="image/*" capture="environment" className="visually-hidden"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void capture(f); }}
           />
-          <label htmlFor="photo-file" className="btn btn--primary btn--block" aria-disabled={busy}>
-            {busy ? 'PROCESSING…' : 'OPEN CAMERA'}
+          <label htmlFor="photo-file" className="btn btn--primary btn--block btn--lg" aria-disabled={busy}>
+            <Icon name="camera" size={20} /> {busy ? 'Processing…' : 'Open camera'}
           </label>
-        </>
+        </div>
       )}
       {mode === 'live' && !shot && (
         <button type="button" className="btn btn--link btn--block" onClick={() => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; setMode('file'); }}>

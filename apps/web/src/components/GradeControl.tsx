@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Condition, ConditionOption } from '@soc/shared';
+import { Icon, tick } from './ui';
 
 const WORD: Record<Condition, string> = { G: 'Good', F: 'Fair', P: 'Poor', U: 'Unaccept.', NA: 'Not pres.' };
 const LONG_PRESS_MS = 550;
@@ -32,7 +33,10 @@ export function GradeControl({ itemLabel, value, options, onChange, disabled }: 
     const opt = options[i];
     if (!opt || disabled) return;
     refs.current[i]?.focus();
-    if (opt.code !== value) onChange(opt.code);
+    if (opt.code !== value) {
+      tick();
+      onChange(opt.code);
+    }
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -74,7 +78,7 @@ export function GradeControl({ itemLabel, value, options, onChange, disabled }: 
           type="button" className="info-btn" aria-expanded={helpOpen} aria-controls={`${helpId}-help`}
           onClick={() => setHelpOpen((o) => !o)}
         >
-          ⓘ <span className="visually-hidden">What the grades mean</span>
+          <Icon name="info" /><span className="visually-hidden">What the grades mean</span>
         </button>
       </div>
       {helpOpen && (
@@ -88,6 +92,10 @@ export function GradeControl({ itemLabel, value, options, onChange, disabled }: 
         role="radiogroup" aria-label={`Condition of ${itemLabel}`} aria-disabled={disabled || undefined}
         className="grades" onKeyDown={onKeyDown}
       >
+        <span
+          className="grades__thumb" aria-hidden="true" data-grade={value ?? undefined}
+          style={{ ['--idx' as string]: Math.max(selectedIndex, 0), width: `calc((100% - 8px) / ${options.length})` }}
+        />
         {options.map((o, i) => (
           <button
             key={o.code}

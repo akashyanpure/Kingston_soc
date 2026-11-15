@@ -3,7 +3,7 @@ import type { SignatureRole } from '@soc/shared';
 import type { LocalSignature } from '../lib/db';
 import { signVisit } from '../lib/signatures';
 import { syncEngine } from '../lib/sync';
-import { Corners } from './fields';
+import { Icon } from './ui';
 import { SignaturePad } from './SignaturePad';
 
 export interface SignatureBlockProps {
@@ -51,21 +51,23 @@ export function SignatureBlock({ visitId, role, label, required, signature, stal
   };
 
   const status = !signature ? (required ? 'Required' : 'Not signed') : stale ? 'Needs re-signing' : 'Signed';
-  const pill = !signature ? '' : stale ? ' pill--dark' : ' pill--teal';
+  const pill = !signature ? (required ? ' pill--F' : '') : stale ? ' pill--alert' : ' pill--G';
   const src = signature?.imageDataUrl ?? (signature?.hasImage ? `/api/signatures/${signature.id}/image` : null);
 
   return (
-    <fieldset className="card" style={{ margin: '0 0 16px' }} aria-describedby={`${id}-status`}>
-      <Corners />
-      <legend className="item__name" style={{ padding: '0 4px' }}>{label}</legend>
-      <div className="row" style={{ marginBottom: 8 }}>
-        <span className="small muted">{required ? 'Must sign' : 'Optional'}</span>
-        <span id={`${id}-status`} className={`pill${pill}`}>{status}</span>
+    <fieldset className="card sigcard" style={{ margin: '0 0 16px' }} aria-describedby={`${id}-status`}>
+      <legend className="visually-hidden">{label}</legend>
+      <div className="row" style={{ marginBottom: 12 }}>
+        <div>
+          <div className="sigcard__role" aria-hidden="true">{label}</div>
+          <span className="small muted">{required ? 'Must sign' : 'Optional'}</span>
+        </div>
+        <span id={`${id}-status`} className={`pill${pill}`}>{signature && !stale && <Icon name="check" size={13} />}{status}</span>
       </div>
 
       {signature && !editing ? (
         <>
-          {src && <img src={src} alt={`Signature of ${signature.name}`} style={{ width: '100%', height: 120, objectFit: 'contain', background: '#fff', border: '1px solid var(--divider)' }} />}
+          {src && <img src={src} alt={`Signature of ${signature.name}`} className="sigimg" />}
           <p className="small" style={{ margin: '6px 0' }}>
             {signature.name} · {new Date(signature.signedAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
           </p>
@@ -75,7 +77,7 @@ export function SignatureBlock({ visitId, role, label, required, signature, stal
             </div>
           )}
           <button type="button" className={`btn btn--sm${stale ? ' btn--primary' : ''}`} disabled={!enabled} onClick={() => { setName(signature.name); setEditing(true); }}>
-            SIGN AGAIN
+            Sign again
           </button>
         </>
       ) : (
@@ -87,15 +89,15 @@ export function SignatureBlock({ visitId, role, label, required, signature, stal
           {enabled ? (
             <SignaturePad label={`${label} signature`} value={image} onChange={setImage} />
           ) : (
-            <div className="sigpad stripe" aria-hidden="true" />
+            <div className="sigpad sigpad--disabled" aria-hidden="true"><div className="sigpad__hint">Opens when the draft is complete</div></div>
           )}
           {error && <p className="error-text" role="alert">{error}</p>}
           <div className="btn-grid" style={{ marginTop: 8, marginBottom: 0 }}>
             {signature ? (
-              <button type="button" className="btn btn--sm" onClick={() => { setEditing(false); setImage(null); }}>CANCEL</button>
+              <button type="button" className="btn btn--sm" onClick={() => { setEditing(false); setImage(null); }}>Cancel</button>
             ) : <span />}
             <button type="button" className="btn btn--sm btn--primary" disabled={!enabled || !image || !name.trim() || busy} onClick={() => void confirm()}>
-              {busy ? 'SAVING…' : 'CONFIRM SIGNATURE'}
+              {busy ? 'Saving…' : 'Confirm signature'}
             </button>
           </div>
         </>
