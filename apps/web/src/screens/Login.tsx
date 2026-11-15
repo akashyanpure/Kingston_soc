@@ -1,13 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router';
 import type { User } from '@soc/shared';
 import { HttpError, NetworkError } from '../lib/api';
 import { devLogin, fetchDevUsers, login } from '../lib/session';
 
 export function Login() {
-  const nav = useNavigate();
-  const loc = useLocation();
-  const from = (loc.state as { from?: string } | null)?.from ?? '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +16,7 @@ export function Login() {
     setBusy(true);
     setError(null);
     try {
-      await fn();
-      nav(from, { replace: true });
+      await fn(); // LoginRoute redirects as soon as the session exists
     } catch (e) {
       setError(
         e instanceof NetworkError ? 'No connection. You need signal the first time you sign in on this phone.'

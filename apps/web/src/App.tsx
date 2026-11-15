@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router';
 import { RequireSession, Shell } from './components/Shell';
 import { useSession } from './lib/session';
 import { Account } from './screens/Account';
@@ -17,8 +17,10 @@ const Manager = lazy(() => import('./screens/Manager').then((m) => ({ default: m
 
 function LoginRoute() {
   const session = useSession();
+  const loc = useLocation();
   if (session === undefined) return null;
-  return session ? <Navigate to="/" replace /> : <Login />;
+  const from = (loc.state as { from?: string } | null)?.from ?? '/';
+  return session ? <Navigate to={from} replace /> : <Login />;
 }
 
 export function AppRoutes() {

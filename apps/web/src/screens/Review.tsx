@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { issueBlockers, SCHEMES, type Blocker, type SignatureRole, type VisitBundle } from '@soc/shared';
+import { issueBlockers, SCHEMES, type Blocker, type BlockerCode, type VisitBundle } from '@soc/shared';
 import { renderReportHtml } from '@soc/report';
 import { Corners } from '../components/fields';
-import { SignaturePad } from '../components/SignaturePad';
-import { db, type SignatureDraft } from '../lib/db';
+import { SignatureBlock } from '../components/SignatureBlock';
+import { db } from '../lib/db';
 import { progressOf, relevantItems, useOnline } from '../lib/hooks';
 import { formOf, useReference } from '../lib/reference';
 import { useSession } from '../lib/session';
+import { contentHashOf, isStale, rolesFor } from '../lib/signatures';
 import { queueIssue, syncEngine } from '../lib/sync';
 import { useVisit, type VisitData } from '../lib/visitData';
+
+const SIGNATURE_CODES: BlockerCode[] = ['OFFICER_SIGNATURE_MISSING', 'SIGNATURE_STALE', 'SIGNATURE_ROLE_INVALID'];
 
 function blockerHref(visitId: string, b: Blocker): string {
   if (b.code === 'GENERAL_MISSING') return `/visits/${visitId}#general`;
@@ -31,13 +34,19 @@ export function Review() {
   const form = formOf(ref);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const drafts = useLiveQuery(() => (visitId ? db.signatureDrafts.where('visitId').equals(visitId).toArray() : []), [visitId]);
   const action = useLiveQuery(
     () => (visitId ? db.pendingActions.where('visitId').equals(visitId).filter((a) => a.kind === 'issue' && a.status !== 'done').first() : undefined),
     [visitId],
   );
 
-  const blockers = useMemo(() => (data ? issueBlockers({ rooms: data.rooms, items: data.items, photos: data.photos, general: data.general }) : []), [data]);
+  // Content fingerprint of the draft as it is now; signatures bind to it.
+  const contentHash = useMemo(() => (data ? contentHashOf(data) : null), [data]);
+  const blockers = useMemo(() => (data ? issueBlockers({
+    rooms: data.rooms, items: data.items, photos: data.photos, general: data.general,
+    signatures: data.signatures, visitType: data.visit.visitType, contentSha256: contentHash ?? '',
+  }) : []), [data, contentHash]);
+  const contentBlockers = blockers.filter((b) => !SIGNATURE_CODES.includes(b.code));
+  const signatureBlockers = blockers.filter((b) => SIGNATURE_CODES.includes(b.code));
 
   // Once the queued issue completes (now or after reconnecting), go to the Done screen.
   useEffect(() => {
@@ -52,14 +61,8 @@ export function Review() {
   const p = progressOf(items);
   const livePhotos = data.photos.filter((ph) => !ph.deletedAt).length;
   const uploading = data.photos.filter((ph) => !ph.deletedAt && !ph.uploaded).length;
-  const draftFor = (role: SignatureRole): SignatureDraft =>
-    drafts?.find((d) => d.role === role) ?? {
-      key: `${visit.id}:${role}`, visitId: visit.id, role, name: role === 'officer' ? session?.name ?? '' : '', imageDataUrl: null, signedAt: null,
-    };
-  const saveDraft = (role: SignatureRole, patch: Partial<SignatureDraft>) => {
-    const cur = draftFor(role);
-    void db.signatureDrafts.put({ ...cur, ...patch, signedAt: patch.imageDataUrl ? new Date().toISOString() : patch.imageDataUrl === null ? null : cur.signedAt });
-  };
+  const roles = rolesFor(form, visit.visitType);
+  const canSign = contentBlockers.length === 0 && !!contentHash;
 
   const generate = async () => {
     if (blockers.length) return;
@@ -78,7 +81,7 @@ export function Review() {
     if (after?.status === 'failed') setMessage(`The server would not issue the report:\n${after.error ?? ''}`);
     else setMessage(res.error
       ? `Could not reach the server (${res.error}). The report is queued and will issue automatically when the connection is back.`
-      : 'Still uploading changes and photos. The report will issue automatically as soon as they are all on the server.');
+      : 'Still uploading changes, photos and signatures. The report will issue automatically as soon as they are all on the server.');
   };
 
   return (
@@ -97,20 +100,20 @@ export function Review() {
         ))}
       </div>
 
-      {blockers.length > 0 ? (
+      {contentBlockers.length > 0 ? (
         <section aria-labelledby="blockers-h">
           <div className="notice notice--strong" id="blockers-h">
-            <span><strong>{blockers.length} thing{blockers.length > 1 ? 's' : ''} to fix before the report can issue.</strong> Every item needs a grade; Fair, Poor or Unacceptable needs a comment and a photo; N/A needs a reason; each room needs a wide photo.</span>
+            <span><strong>{contentBlockers.length} thing{contentBlockers.length > 1 ? 's' : ''} to fix before signing.</strong> Every item needs a grade; Fair, Poor or Unacceptable needs a comment and a photo; N/A needs a reason; each room needs a wide photo.</span>
           </div>
           <ul className="blockers">
-            {blockers.slice(0, 60).map((b, i) => (
+            {contentBlockers.slice(0, 60).map((b, i) => (
               <li key={`${b.code}-${b.itemRecordId ?? b.roomInstanceId ?? i}`}><Link to={blockerHref(visit.id, b)}>{b.message}</Link></li>
             ))}
-            {blockers.length > 60 && <li className="small muted" style={{ padding: 10 }}>…and {blockers.length - 60} more. Try MARK ALL AS GOOD on the rooms list.</li>}
+            {contentBlockers.length > 60 && <li className="small muted" style={{ padding: 10 }}>…and {contentBlockers.length - 60} more. Try MARK ALL AS GOOD on the rooms list.</li>}
           </ul>
         </section>
       ) : (
-        <div className="notice" role="status">Everything required is captured. Collect signatures, then generate the report.</div>
+        <div className="notice" role="status">Everything required is captured. Check the draft with each person, collect signatures, then generate the report.</div>
       )}
 
       {uploading > 0 && (
@@ -121,23 +124,24 @@ export function Review() {
 
       <DraftPreview data={data} />
 
-      <h2 className="section-label">Signatures</h2>
-      {form.signatureRoles.map(({ role, label }) => {
-        const d = draftFor(role);
+      <h2 className="section-label" id="signatures">Signatures</h2>
+      {!canSign && (
+        <div className="notice notice--grey">Signing opens once everything above is fixed — each person signs the finished draft.</div>
+      )}
+      {signatureBlockers.filter((b) => b.code === 'SIGNATURE_ROLE_INVALID').map((b) => (
+        <p key={b.signatureId} className="error-text" role="alert">{b.message}</p>
+      ))}
+      {roles.map(({ role, label }) => {
+        const sig = data.signatures.find((x) => x.role === role && x.method === 'on_device') ?? null;
         return (
-          <fieldset key={role} className="card" style={{ margin: '0 0 16px' }}>
-            <Corners />
-            <legend className="item__name" style={{ padding: '0 4px' }}>{label}</legend>
-            <div className="field">
-              <label className="field__label" htmlFor={`sig-${role}`}>Print name</label>
-              <input id={`sig-${role}`} className="input" autoComplete="name" value={d.name}
-                onChange={(e) => saveDraft(role, { name: e.target.value })} />
-            </div>
-            <SignaturePad label={`${label} signature`} value={d.imageDataUrl} onChange={(img) => saveDraft(role, { imageDataUrl: img })} />
-          </fieldset>
+          <SignatureBlock
+            key={role} visitId={visit.id} role={role} label={label} required={role === 'officer'}
+            signature={sig} stale={!!sig && isStale(sig, contentHash)} enabled={canSign}
+            defaultName={role === 'officer' ? session?.name ?? '' : role === 'landlord_agent' ? data.landlord?.name ?? '' : data.tenancy?.tenantName ?? ''}
+          />
         );
       })}
-      <p className="small muted">Signatures are sent with the report when it issues. Roles left unsigned can sign later.</p>
+      <p className="small muted">The officer must sign. Landlord/agent and tenant are optional — anyone who does not sign is shown as "Not signed". If anything changes after someone signs, they need to sign again.</p>
 
       {action?.status === 'pending' && (
         <div className="notice" role="status">
@@ -148,7 +152,11 @@ export function Review() {
       {message && <div className="notice" role="status" style={{ whiteSpace: 'pre-line' }}>{message}</div>}
 
       <button type="button" className="btn btn--primary btn--block" disabled={blockers.length > 0 || busy} onClick={() => void generate()}>
-        {blockers.length ? `FIX ${blockers.length} ISSUE${blockers.length > 1 ? 'S' : ''} FIRST` : busy ? 'ISSUING…' : 'GENERATE THE SOC REPORT →'}
+        {contentBlockers.length
+          ? `FIX ${contentBlockers.length} ISSUE${contentBlockers.length > 1 ? 'S' : ''} FIRST`
+          : signatureBlockers.length
+            ? signatureBlockers.some((b) => b.code === 'OFFICER_SIGNATURE_MISSING') ? 'OFFICER SIGNATURE NEEDED' : 'SIGNATURES NEED RE-SIGNING'
+            : busy ? 'ISSUING…' : 'GENERATE THE SOC REPORT →'}
       </button>
     </div>
   );
@@ -172,7 +180,8 @@ function DraftPreview({ data }: { data: VisitData }) {
     const bundle: VisitBundle = {
       visit: data.visit, property: data.property, landlord: data.landlord, tenancy: data.tenancy, general: data.general,
       appliances: data.appliances, meters: data.meters, rooms: data.rooms, items: data.items,
-      photos: data.photos.map(({ blob: _b, ...p }) => p), notes: data.notes, report: data.report, signatures: data.signatures,
+      photos: data.photos.map(({ blob: _b, ...p }) => p), notes: data.notes, report: data.report,
+      signatures: data.signatures.map(({ imageDataUrl: _i, ...sig }) => sig),
     };
     const schemeName = ref?.schemes.find((s) => s.code === data.visit.schemeCode)?.name ?? SCHEMES.find((s) => s.code === data.visit.schemeCode)?.name ?? data.visit.schemeCode;
     const officerName = ref?.officers.find((o) => o.id === data.visit.officerId)?.name ?? session?.name ?? '';
@@ -180,6 +189,10 @@ function DraftPreview({ data }: { data: VisitData }) {
       setHtml(renderReportHtml({
         bundle, form, schemeName, officerName, mode: 'draft',
         photoSrc: (id) => urlFor.get(id) ?? `/api/photos/${id}/file`,
+        signatureSrc: (id) => {
+          const sig = data.signatures.find((x) => x.id === id);
+          return sig?.imageDataUrl ?? (sig?.hasImage ? `/api/signatures/${id}/image` : null);
+        },
       }));
     } catch (e) {
       setHtml(`<p style="font-family:sans-serif">Preview failed: ${String((e as Error).message).replace(/</g, '&lt;')}</p>`);

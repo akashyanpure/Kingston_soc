@@ -6,7 +6,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type {
   AdditionalNote, Appliance, ItemRecord, Landlord, MeterReading, Mutation, Photo, Property,
-  ReferenceData, Report, RoomInstance, Signature, SignatureRole, SyncEntity, Tenancy, User,
+  ReferenceData, Report, RoomInstance, Signature, SyncEntity, Tenancy, User,
   Visit, VisitGeneral,
 } from '@soc/shared';
 
@@ -36,13 +36,13 @@ export interface PendingAction {
   createdAt: string;
 }
 
-export interface SignatureDraft {
-  key: string; // `${visitId}:${role}`
-  visitId: string;
-  role: SignatureRole;
-  name: string;
-  imageDataUrl: string | null;
-  signedAt: string | null;
+/**
+ * On-device e-signature (decision 2026-11-15): a visit row like any other, synced as entity
+ * 'signature'. The PNG data URL is kept on the device for display/preview and sent once in
+ * the push data (write-only on the server, which then serves GET /signatures/:id/image).
+ */
+export interface LocalSignature extends Signature {
+  imageDataUrl?: string;
 }
 
 export interface ReferenceRow { key: 'current'; data: ReferenceData; fetchedAt: string }
@@ -62,8 +62,7 @@ export class SocDb extends Dexie {
   photos!: EntityTable<LocalPhoto, 'id'>;
   notes!: EntityTable<AdditionalNote, 'id'>;
   reports!: EntityTable<Report, 'id'>;
-  signatures!: EntityTable<Signature, 'id'>;
-  signatureDrafts!: EntityTable<SignatureDraft, 'key'>;
+  signatures!: EntityTable<LocalSignature, 'id'>;
   outbox!: EntityTable<OutboxEntry, 'seq'>;
   pendingActions!: EntityTable<PendingAction, 'seq'>;
   reference!: EntityTable<ReferenceRow, 'key'>;
@@ -91,6 +90,11 @@ export class SocDb extends Dexie {
       reference: 'key',
       meta: 'key',
     });
+    // v2: signatures belong to the visit and are created on the device before issue.
+    this.version(2).stores({
+      signatures: 'id, reportId, visitId, [visitId+role]',
+      signatureDrafts: null,
+    });
   }
 }
 
@@ -113,6 +117,7 @@ export function tableFor(entity: SyncEntity) {
     case 'item_record': return db.items;
     case 'photo': return db.photos;
     case 'additional_note': return db.notes;
+    case 'signature': return db.signatures;
   }
 }
 

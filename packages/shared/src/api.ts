@@ -26,7 +26,7 @@
  * | GET    | /visits/:id/preview               | owner/manager | —                    | text/html (draft report)    |
  * | GET    | /reports/:id                      | owner/manager | —                    | { report, signatures }      |
  * | GET    | /reports/:id/pdf                  | owner/manager | —                    | application/pdf (202 if rendering) |
- * | (sync) | entity 'signature' via /sync/push  | owner    | on-device e-signature BEFORE issue: Signature fields + write-only imageDataUrl (SignatureImageDataUrl); insert-only, contentSha256 must equal visitContentHash(current bundle) at issue | — |
+ * | (sync) | entity 'signature' via /sync/push  | owner    | on-device e-signature BEFORE issue: Signature fields + write-only imageDataUrl (SignatureImageDataUrl); insert or re-sign (update same id) until issue, contentSha256 must equal visitContentHash(current bundle) at issue | — |
  * | GET    | /signatures/:id/image             | owner/manager | —                    | image/png                   |
  * | POST   | /reports/:id/signatures           | (future)  | SignRequest — method 'link' only, after issue, for a party who was absent; not printed in the issued PDF | { signature } |
  * | POST   | /reports/:id/notes                | owner/manager | NoteRequest (post-issue, append-only) | { note }   |

@@ -90,7 +90,7 @@ export function SignaturePad({ label, value, onChange, disabled }: SignaturePadP
         {!value && <div className="sigpad__hint" aria-hidden="true">Sign here with a finger</div>}
       </div>
       <div className="row" style={{ marginTop: 4 }}>
-        <span className="small muted">{value ? 'Signed on this device' : 'Not signed'}</span>
+        <span className="small muted">{value ? 'Ready — confirm below' : 'Pad is empty'}</span>
         <button type="button" className="btn btn--link btn--sm" onClick={clear} disabled={disabled || !value}>Clear signature</button>
       </div>
     </div>

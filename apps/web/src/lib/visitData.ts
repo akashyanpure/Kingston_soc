@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import type {
-  AdditionalNote, Appliance, ItemRecord, Landlord, MeterReading, Property, Report, RoomInstance, Signature, Tenancy, Visit, VisitGeneral,
+  AdditionalNote, Appliance, ItemRecord, Landlord, MeterReading, Property, Report, RoomInstance, Tenancy, Visit, VisitGeneral,
 } from '@soc/shared';
-import { db, type LocalPhoto } from './db';
+import { db, type LocalPhoto, type LocalSignature } from './db';
 
 export interface VisitData {
   visit: Visit;
@@ -17,7 +17,7 @@ export interface VisitData {
   meters: MeterReading[];
   notes: AdditionalNote[];
   report: Report | null;
-  signatures: Signature[];
+  signatures: LocalSignature[];
 }
 
 export async function loadVisit(visitId: string): Promise<VisitData | null> {
@@ -37,7 +37,7 @@ export async function loadVisit(visitId: string): Promise<VisitData | null> {
   const landlord = property?.landlordId ? (await db.landlords.get(property.landlordId)) ?? null : null;
   const tenancy = visit.tenancyId ? (await db.tenancies.get(visit.tenancyId)) ?? null : null;
   const report = reports[0] ?? null;
-  const signatures = report ? await db.signatures.where('reportId').equals(report.id).toArray() : [];
+  const signatures = await db.signatures.where('visitId').equals(visitId).toArray();
   return {
     visit, property: property ?? null, landlord, tenancy,
     rooms: rooms.sort((a, b) => a.sortOrder - b.sortOrder),

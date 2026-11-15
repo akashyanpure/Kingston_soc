@@ -9,12 +9,13 @@ const toSession = (u: User): SessionUser => ({ id: u.id, email: u.email, name: u
 
 async function startSession(user: User): Promise<SessionUser> {
   const s = toSession(user);
-  await setMeta('session', s);
+  // Fetch the form first: setting the session triggers the redirect into the app.
   try {
     await fetchReference();
   } catch (e) {
     console.warn('Reference data not loaded yet', e);
   }
+  await setMeta('session', s);
   void syncEngine.syncNow({ pull: true });
   return s;
 }

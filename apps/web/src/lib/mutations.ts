@@ -43,7 +43,7 @@ function mutation(entity: SyncEntity, id: string, data: Record<string, unknown>,
 }
 
 const ALL_TABLES = () => [
-  db.visits, db.general, db.appliances, db.meters, db.rooms, db.items, db.photos, db.notes, db.outbox, db.meta,
+  db.visits, db.general, db.appliances, db.meters, db.rooms, db.items, db.photos, db.notes, db.signatures, db.outbox, db.meta,
 ];
 
 /**

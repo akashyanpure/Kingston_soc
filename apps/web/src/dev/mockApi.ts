@@ -7,7 +7,7 @@
  * the shim fails like a real network while navigator.onLine is false.
  */
 import {
-  buildFormDefinition, issueBlockers, SCHEMES,
+  buildFormDefinition, issueBlockers, SCHEMES, visitContentHash,
   type CreateVisitRequest, type DescriptionPhrase, type Mutation, type PushRequest, type ReferenceData, type User, type VisitBundle, type VisitSummary,
 } from '@soc/shared';
 import { renderReportHtml } from '@soc/report';
@@ -15,10 +15,10 @@ import { v7 as uuidv7 } from 'uuid';
 import { buildVisitCreates } from '../lib/visitFactory';
 import { setFetch } from '../lib/api';
 
-const KEY = 'soc-mock-api-v1';
+const KEY = 'soc-mock-api-v2';
 const FORM_VERSION_ID = '0196f000-0000-7000-8000-000000000001';
 const USERS: User[] = [
-  { id: '0196f000-0000-7000-8000-0000000000a1', email: 'j.patel@kingston.gov.uk', name: 'J. Patel', role: 'officer', active: true },
+  { id: '0196f000-0000-7000-8000-0000000000a1', email: 'p.dekaate@kingston.test', name: 'P. Dekaate', role: 'officer', active: true },
   { id: '0196f000-0000-7000-8000-0000000000a2', email: 'r.manager@kingston.gov.uk', name: 'R. Okafor', role: 'manager', active: true },
 ];
 
@@ -29,14 +29,13 @@ interface State {
   landlords: Rows;
   tables: Record<string, Rows>; // entity → id → row
   reports: Rows;
-  signatures: Rows;
   processed: string[];
   seq: number;
 }
 
 const ENTITY_TABLE: Record<string, string> = {
   visit: 'visits', visit_general: 'general', appliance: 'appliances', meter_reading: 'meters',
-  room_instance: 'rooms', item_record: 'items', photo: 'photos', additional_note: 'notes',
+  room_instance: 'rooms', item_record: 'items', photo: 'photos', additional_note: 'notes', signature: 'signatures',
 };
 
 function load(): State {
@@ -52,7 +51,7 @@ function save(s: State) {
 
 function seed(): State {
   const s: State = {
-    me: null, properties: {}, landlords: {}, reports: {}, signatures: {}, processed: [], seq: 416,
+    me: null, properties: {}, landlords: {}, reports: {}, processed: [], seq: 416,
     tables: Object.fromEntries(Object.values(ENTITY_TABLE).map((t) => [t, {}])),
   };
   const ll = { id: uuidv7(), name: 'A. Pemberton', company: 'Pemberton Lettings', email: 'lettings@example.org', phone: null };
@@ -91,7 +90,7 @@ function bundle(s: State, visitId: string): VisitBundle | null {
     visit, property, landlord: property.landlordId ? s.landlords[property.landlordId as string] ?? null : null, tenancy: null,
     general: of('general'), appliances: of('appliances'), meters: of('meters'), rooms: of('rooms'), items: of('items'),
     photos: of('photos'), notes: of('notes'), report,
-    signatures: report ? Object.values(s.signatures).filter((x) => x.reportId === report.id) : [],
+    signatures: of('signatures'),
   } as unknown as VisitBundle;
 }
 
@@ -185,7 +184,7 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
     if (!b) return err(404, 'NOT_FOUND', 'No such visit');
     if (b.report) return err(409, 'ALREADY_ISSUED', 'Already issued');
     const blockers = [
-      ...issueBlockers(b),
+      ...issueBlockers({ ...b, visitType: b.visit.visitType, contentSha256: visitContentHash(b) }),
       ...b.photos.filter((ph) => !ph.deletedAt && !ph.uploaded).map((ph) => ({ code: 'PHOTO_NOT_UPLOADED', message: 'Photo not uploaded yet.', photoId: ph.id })),
     ];
     if (blockers.length) return err(409, 'ISSUE_BLOCKED', 'Report cannot issue yet', { blockers });
@@ -194,19 +193,14 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
       sha256: 'f'.repeat(64), pdfReady: true, issuedAt: new Date().toISOString(), issuedBy: me.id,
     };
     s.reports[report.id] = report;
+    for (const sig of b.signatures) Object.assign(s.tables.signatures![sig.id]!, { reportId: report.id });
     Object.assign(s.tables.visits![b.visit.id]!, { status: 'issued', reportNumber: report.reportNumber, completedAt: report.issuedAt, updatedAt: report.issuedAt });
     return json({ report }, 201);
   }
   if ((m = path.match(/^\/reports\/([^/]+)$/)) && method === 'GET') {
     const report = s.reports[m[1]!];
     if (!report) return err(404, 'NOT_FOUND', 'No such report');
-    return json({ report, signatures: Object.values(s.signatures).filter((x) => x.reportId === report.id) });
-  }
-  if ((m = path.match(/^\/reports\/([^/]+)\/signatures$/)) && method === 'POST') {
-    const req = body();
-    const signature = { id: uuidv7(), reportId: m[1], role: req.role, name: req.name, method: req.method, signedAt: new Date().toISOString(), reportSha256: null };
-    s.signatures[signature.id] = signature;
-    return json({ signature }, 201);
+    return json({ report, signatures: Object.values(s.tables.signatures!).filter((x) => x.visitId === report.visitId) });
   }
   if ((m = path.match(/^\/reports\/([^/]+)\/pdf$/)) && method === 'GET') {
     const report = s.reports[m[1]!];
@@ -226,7 +220,8 @@ async function handle(s: State, method: string, path: string, url: URL, init?: R
       const table = s.tables[ENTITY_TABLE[mu.entity]!]!;
       const visitId = mu.entity === 'visit' ? mu.id : (mu.data.visitId as string);
       if (s.tables.visits![visitId]?.status === 'issued') return { mutationId: mu.mutationId, status: 'rejected' as const, error: 'Visit is issued' };
-      table[mu.id] = { ...(table[mu.id] ?? {}), ...mu.data, id: mu.id, updatedAt: mu.clientUpdatedAt, updatedBy: me.id };
+      const { imageDataUrl: _img, ...data } = mu.data; // write-only on the server
+      table[mu.id] = { ...(table[mu.id] ?? {}), ...data, id: mu.id, updatedAt: mu.clientUpdatedAt, updatedBy: me.id };
       if (mu.entity !== 'visit' && s.tables.visits![visitId]) s.tables.visits![visitId]!.updatedAt = mu.clientUpdatedAt;
       s.processed.push(mu.mutationId);
       return { mutationId: mu.mutationId, status: 'applied' as const };

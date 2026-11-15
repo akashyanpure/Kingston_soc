@@ -58,7 +58,7 @@ export const SYNC_ENTITIES = [
   'item_record',
   'photo',
   'additional_note',
-  'signature', // on-device signatures, captured before issue (insert-only from the device)
+  'signature', // on-device signatures, captured before issue (insert, or re-sign = update of the same id, until issue)
 ] as const;
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 

@@ -17,7 +17,7 @@
  * Everything lives in IndexedDB, so a reload or app kill just resumes.
  */
 import type {
-  MutationResult, PushRequest, PushResponse, Report, Signature, SignRequest, SyncEntity, VisitBundle, VisitSummary,
+  MutationResult, PushRequest, PushResponse, Report, SyncEntity, VisitBundle, VisitSummary,
 } from '@soc/shared';
 import { api, apiRaw, HttpError, isTransient } from './api';
 import { db, getMeta, setMeta, type OutboxEntry, type PendingAction, type SessionUser } from './db';
@@ -33,6 +33,7 @@ const RANK: Record<SyncEntity, number> = {
   meter_reading: 3,
   additional_note: 3,
   photo: 4,
+  signature: 5, // last: a signature binds to all of the content above
 };
 
 function rankOf(m: Pick<OutboxEntry, 'entity' | 'data'>): number {
@@ -74,7 +75,6 @@ export async function getDeviceId(): Promise<string> {
 
 export interface IssuePayload {
   reportId?: string;
-  signedRoles?: string[];
 }
 
 export class SyncEngine {
@@ -353,10 +353,6 @@ export class SyncEngine {
           });
           issued++;
         }
-        if (!(await this.postSignatures(visitId, payload, a.seq!))) {
-          this.schedule(5000); // PDF still rendering: signatures follow once its hash exists
-          continue;
-        }
         await db.pendingActions.update(a.seq!, { status: 'done', payload });
       } catch (e) {
         await db.pendingActions.update(a.seq!, { attempts: a.attempts + 1, error: (e as Error).message });
@@ -365,31 +361,6 @@ export class SyncEngine {
       }
     }
     return issued;
-  }
-
-  /** Returns false while the report PDF (and so its SHA-256) is not ready — signatures bind to it. */
-  private async postSignatures(visitId: string, payload: IssuePayload, seq: number): Promise<boolean> {
-    const drafts = (await db.signatureDrafts.where('visitId').equals(visitId).toArray()).filter((d) => d.name.trim() && d.imageDataUrl);
-    payload.signedRoles ??= [];
-    if (drafts.every((d) => payload.signedRoles!.includes(d.role))) return true;
-    const { report } = await api<{ report: Report; signatures: Signature[] }>(`/reports/${payload.reportId}`);
-    await db.reports.put(report);
-    if (!report.sha256) return false;
-    for (const d of drafts) {
-      if (payload.signedRoles.includes(d.role) || !d.name.trim() || !d.imageDataUrl) continue;
-      const req: SignRequest = { role: d.role, name: d.name.trim(), method: 'on_device', imageDataUrl: d.imageDataUrl };
-      try {
-        const { signature } = await api<{ signature: Signature }>(`/reports/${payload.reportId}/signatures`, { method: 'POST', json: req });
-        await db.signatures.put(signature);
-      } catch (e) {
-        if (!(e instanceof HttpError && e.status === 409)) throw e;
-        if (e.code === 'REPORT_NOT_READY') return false;
-        // any other 409: this role has already signed
-      }
-      payload.signedRoles.push(d.role);
-      await db.pendingActions.update(seq, { payload });
-    }
-    return true;
   }
 
   async visitFullySynced(visitId: string): Promise<boolean> {
@@ -445,7 +416,10 @@ export async function mergeBundle(b: VisitBundle): Promise<void> {
       await db.photos.put({ ...withLocal(p), ...(local?.blob ? { blob: local.blob } : {}) });
     }
     if (b.report) await db.reports.put(b.report);
-    if (b.signatures.length) await db.signatures.bulkPut(b.signatures);
+    for (const sig of b.signatures) {
+      const local = await db.signatures.get(sig.id);
+      await db.signatures.put({ ...withLocal(sig), ...(local?.imageDataUrl ? { imageDataUrl: local.imageDataUrl } : {}) });
+    }
   });
 }
 

@@ -11,7 +11,7 @@ import { form, freshDb, seedVisit } from './helpers';
 
 const f = form();
 const RANK: Record<SyncEntity, number> = {
-  visit: 0, room_instance: 1, item_record: 2, visit_general: 3, appliance: 3, meter_reading: 3, additional_note: 3, photo: 4,
+  visit: 0, room_instance: 1, item_record: 2, visit_general: 3, appliance: 3, meter_reading: 3, additional_note: 3, photo: 4, signature: 5,
 };
 
 interface Call { method: string; path: string; body?: unknown; headers?: Record<string, string> }

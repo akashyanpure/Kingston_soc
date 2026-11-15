@@ -30,8 +30,10 @@ export function Done() {
         const { report, signatures } = await api<{ report: Report; signatures: Signature[] }>(`/reports/${reportId}`);
         if (stop) return;
         await db.reports.put(report);
-        if (signatures.length) await db.signatures.bulkPut(signatures);
-        if (report.pdfReady && report.sha256) void syncEngine.syncNow(); // queued signatures can now be sent
+        for (const sig of signatures) {
+          const local = await db.signatures.get(sig.id);
+          await db.signatures.put({ ...sig, ...(local?.imageDataUrl ? { imageDataUrl: local.imageDataUrl } : {}) });
+        }
       } catch { /* try again */ }
     };
     void poll();
@@ -72,7 +74,7 @@ export function Done() {
 
       <h2 className="section-label">Signatures</h2>
       {signatures.length === 0 ? (
-        <p className="small muted">No signatures recorded yet.</p>
+        <p className="small muted">No signatures recorded.</p>
       ) : (
         signatures.map((s) => (
           <div key={s.id} className="card card--plain" style={{ marginBottom: 7, padding: 10 }}>
@@ -81,9 +83,6 @@ export function Done() {
         ))
       )}
       {report.sha256 && <p className="mono" style={{ wordBreak: 'break-all' }}>SHA-256 {report.sha256}</p>}
-      {action && action.status === 'pending' && (
-        <p className="small muted" role="status">Signatures captured on this phone are sent once the PDF is ready{online ? '' : ' and the phone is online'}.</p>
-      )}
       {!ready && <p className="small muted" role="status">Generating the PDF…</p>}
 
       <div className="btn-grid" style={{ marginTop: 12 }}>
