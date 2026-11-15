@@ -6,8 +6,8 @@ import { and, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { FastifyInstance } from 'fastify';
-import { formatAddress, itemRecords, properties, reports, roomInstances, signatures, users, visits } from '@soc/db';
-import { ManagerOverview, ManagerOverviewQuery, ReportSearchQuery, ReportSummary } from '@soc/shared';
+import { formatAddress, listVisits, itemRecords, schemes, properties, reports, roomInstances, signatures, users, visits } from '@soc/db';
+import { ManagerOverview, ManagerOverviewQuery, ReportSearchQuery, ReportSummary, SCHEMES } from '@soc/shared';
 import { requireRole } from '../auth/index.js';
 import type { AppContext } from '../context.js';
 import { badRequest, parse } from '../errors.js';
@@ -48,7 +48,45 @@ const defectsSql = sql<number>`(select count(*)::int from ${itemRecords} i left 
   where i.visit_id = ${visits.id} and i.deleted_at is null and i.condition in ('F','P','U')
   and (i.room_instance_id is null or (r.present and r.deleted_at is null)))`;
 
+/** One CSV cell: quoted when needed; formula-looking text is neutralised for spreadsheet safety. */
+export function csvCell(v: unknown): string {
+  let s = v === null || v === undefined ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const VISIT_TYPE_TEXT: Record<string, string> = { check_in: 'Check-in', check_out: 'Check-out', interim: 'Interim' };
+const STATUS_TEXT: Record<string, string> = { scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', issued: 'Issued', cancelled: 'Cancelled' };
+
 export function manageRoutes(app: FastifyInstance, ctx: AppContext): void {
+  /** "Export CSV" of the schedule: visits scheduled in the range (Europe/London dates, inclusive). */
+  app.get('/manage/visits.csv', async (req, reply) => {
+    requireRole(req, 'manager', 'admin');
+    const q = parse(ManagerOverviewQuery, req.query);
+    const week = currentWeek();
+    const from = q.from ?? week.from;
+    const to = q.to ?? week.to;
+    if (from > to) throw badRequest('from must be on or before to.');
+    const rows = await listVisits(ctx.db, { from, to, limit: 5000 });
+    const schemeNames = new Map((await ctx.db.select().from(schemes)).map((x) => [x.code as string, x.name]));
+    const hm = (d: Date) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+    const header = ['date', 'time', 'address', 'postcode', 'scheme', 'visit type', 'officer', 'status', 'items graded', 'items total', 'defects', 'report number'];
+    const lines = [header.join(',')];
+    for (const v of rows) {
+      const at = v.scheduledAt ? new Date(v.scheduledAt) : null;
+      lines.push([
+        at ? londonDate(at) : '', at ? hm(at) : '', v.address, v.postcode,
+        schemeNames.get(v.schemeCode) ?? SCHEMES.find((x) => x.code === v.schemeCode)?.name ?? v.schemeCode, VISIT_TYPE_TEXT[v.visitType] ?? v.visitType,
+        v.officerName, STATUS_TEXT[v.status] ?? v.status, v.itemsGraded, v.itemsTotal, v.defects, v.reportNumber ?? '',
+      ].map(csvCell).join(','));
+    }
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition', `attachment; filename="soc-visits-${from}-to-${to}.csv"`)
+      .header('cache-control', 'no-store')
+      .send('﻿' + lines.join('\r\n') + '\r\n'); // BOM so Excel reads UTF-8
+  });
+
   app.get('/manage/overview', async (req) => {
     requireRole(req, 'manager', 'admin');
     const q = parse(ManagerOverviewQuery, req.query);

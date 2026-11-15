@@ -12,6 +12,7 @@ import { HttpError, parse } from '../errors.js';
 import type { AuthProvider } from './index.js';
 import { startSession } from './index.js';
 import { toUser } from './sessions.js';
+import { RateLimiter, TooManyRequests } from '../rate-limit.js';
 
 let dummyHash: Promise<string> | undefined;
 /** Verify against a dummy hash when the user does not exist, so timing does not leak which emails exist. */
@@ -28,8 +29,16 @@ export const devAuthEnabled = (ctx: AppContext) => ctx.config.authMode === 'loca
 export const localAuthProvider: AuthProvider = {
   mode: 'local',
   register(app, ctx) {
+    // Brute-force guard: LOGIN_RATE_LIMIT attempts per IP+email per 15 minutes (reset on success).
+    const limiter = new RateLimiter(ctx.config.loginRateLimit, 15 * 60 * 1000);
     app.post('/auth/login', async (req, reply) => {
       const body = parse(LoginRequest, req.body);
+      const key = `${req.ip}|${body.email.toLowerCase()}`;
+      const wait = limiter.hit(key);
+      if (wait) {
+        reply.header('retry-after', String(wait));
+        throw new TooManyRequests('TOO_MANY_ATTEMPTS', 'Too many sign-in attempts. Try again in a few minutes.', wait);
+      }
       const [row] = await ctx.db.select().from(users).where(eq(sql`lower(${users.email})`, body.email.toLowerCase())).limit(1);
       if (!row || !row.passwordHash) {
         await verify(await getDummyHash(), body.password).catch(() => false);
@@ -38,6 +47,7 @@ export const localAuthProvider: AuthProvider = {
       const ok = await verify(row.passwordHash, body.password).catch(() => false);
       if (!ok || !row.active) throw invalid();
       const user = toUser(row);
+      limiter.reset(key);
       await startSession(ctx, req, reply, user);
       return { user };
     });

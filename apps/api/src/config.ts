@@ -39,6 +39,12 @@ const EnvSchema = z.object({
   /** Postcode/address lookup provider (packages/shared/src/address.ts). */
   ADDRESS_PROVIDER: z.enum(ADDRESS_PROVIDERS).default('postcodes_io'),
   OS_PLACES_API_KEY: z.string().optional(),
+  /** Origin of the web app, used in emailed signing links: ${PUBLIC_URL}/sign/<token>. */
+  PUBLIC_URL: z.url().default('http://localhost:5173'),
+  /** Login attempts per IP+email per 15 minutes. */
+  LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
+  /** Public /api/sign/* requests per IP per minute. */
+  SIGN_RATE_LIMIT: z.coerce.number().int().min(1).default(30),
 }).refine((e) => e.ADDRESS_PROVIDER !== 'os_places' || !!e.OS_PLACES_API_KEY, { message: 'OS_PLACES_API_KEY is required when ADDRESS_PROVIDER=os_places', path: ['OS_PLACES_API_KEY'] });
 
 export interface Config {
@@ -59,6 +65,9 @@ export interface Config {
   trustProxyHops: number;
   addressProvider: AddressProvider;
   osPlacesApiKey: string | null;
+  publicUrl: string;
+  loginRateLimit: number;
+  signRateLimit: number;
 }
 
 const fromRoot = (p: string) => (isAbsolute(p) ? p : resolve(REPO_ROOT, p));
@@ -88,6 +97,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     trustProxyHops: e.TRUST_PROXY_HOPS,
     addressProvider: e.ADDRESS_PROVIDER,
     osPlacesApiKey: e.OS_PLACES_API_KEY || null,
+    publicUrl: e.PUBLIC_URL.replace(/\/+$/, ''),
+    loginRateLimit: e.LOGIN_RATE_LIMIT,
+    signRateLimit: e.SIGN_RATE_LIMIT,
   };
 }
 
@@ -111,6 +123,9 @@ export function testConfig(over: Partial<Config> = {}): Config {
     trustProxyHops: 0,
     addressProvider: 'none',
     osPlacesApiKey: null,
+    publicUrl: 'http://localhost:5173',
+    loginRateLimit: 1000,
+    signRateLimit: 1000,
     ...over,
   };
 }

@@ -20,6 +20,7 @@ import type { PdfRenderer } from './pdf/renderer.js';
 import { PdfWorker } from './pdf/worker.js';
 import { addressRoutes } from './routes/address.js';
 import { adminRoutes } from './routes/admin.js';
+import { signingRoutes } from './routes/signing.js';
 import { manageRoutes } from './routes/manage.js';
 import { photoRoutes } from './routes/photos.js';
 import { propertyRoutes } from './routes/properties.js';
@@ -80,6 +81,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<App> {
       manageRoutes(api, ctx);
       adminRoutes(api, ctx);
       addressRoutes(api, ctx);
+      signingRoutes(api, ctx);
     },
     { prefix: '/api' },
   );

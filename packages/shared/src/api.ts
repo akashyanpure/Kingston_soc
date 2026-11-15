@@ -62,7 +62,7 @@ export const VisitListQuery = z.object({
 export type VisitListQuery = z.infer<typeof VisitListQuery>;
 
 export const VisitSummary = Visit.pick({
-  id: true, schemeCode: true, visitType: true, status: true, scheduledAt: true, reportNumber: true, officerId: true, updatedAt: true,
+  id: true, schemeCode: true, visitType: true, status: true, scheduledAt: true, reportNumber: true, officerId: true, updatedAt: true, propertyId: true,
 }).extend({
   address: z.string(),
   postcode: z.string(),
