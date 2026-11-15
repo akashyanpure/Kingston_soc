@@ -14,3 +14,9 @@ variable "disk_gb" {
   type    = number
   default = 20
 }
+
+variable "cpu_credits" {
+  description = "unlimited = full speed (tiny surplus charge when busy); standard = never extra, but 10% CPU when out of credits."
+  type        = string
+  default     = "unlimited"
+}

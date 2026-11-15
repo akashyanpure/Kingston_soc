@@ -8,7 +8,7 @@ the backup bucket and the secrets.
         phone / browser
               │ https://xxxx.cloudfront.net  (stable URL)
         ┌─────▼──────┐   DOWN → offline page (S3); API calls get 503 so the phone keeps work queued
-        │ CloudFront │
+        │ CloudFront │  web app (PWA) always from S3 · /api/* → server
         └─────┬──────┘   UP → secret header, port 80, CloudFront IPs only
    ┌──────────▼───────────────── EC2 t4g.micro (APP stack, destroyed on `down`) ┐
    │ Caddy (web app + /api proxy) → API + PDF worker (Chromium) → PostgreSQL 17  │
@@ -22,8 +22,8 @@ the backup bucket and the secrets.
 | Command | What it does | Time |
 |---|---|---|
 | `pnpm cloud:init` | One-time: budget, kill switch, CloudFront URL, bucket, secrets | ~5 min |
-| `pnpm cloud:up` | Create the server, deploy the **last commit**, restore latest backup (or seed demo data) | ~10–15 min |
-| `pnpm cloud:deploy` | While up: ship the latest commit | ~5–10 min |
+| `pnpm cloud:up` | Create the server, deploy the **last commit**, restore latest backup (or seed demo data) | ~4–6 min (first ever ~15 min) |
+| `pnpm cloud:deploy` | Ship only what changed, web and API **in parallel** (`-- -Web` / `-- -Api` to force one) | web ~1 min · API ~1–2 min |
 | `pnpm cloud:down` | Back up → offline page → **destroy the server** ($0 afterwards) | ~5 min |
 | `pnpm cloud:status` | Up/down, URL, health, spend vs cap | seconds |
 | `pnpm cloud:cost` | Month-to-date spend + forecast | seconds |
@@ -62,3 +62,14 @@ the backup bucket and the secrets.
   secrets). Don't delete those folders while anything is deployed.
 - Server shell (optional): install the AWS Session Manager plugin, then
   `aws ssm start-session --target <instance id from cloud:status>`.
+
+## Why deploys are fast
+
+- **Web app** lives in S3 behind CloudFront: built on this PC, uploaded, cache refreshed — no server.
+- **API image** is two layers: dependencies (Node packages + Chromium, rebuilt only when the
+  lockfile/manifests change, cached in S3 under `cache/`) and a thin code layer (~30–60 s).
+- A fresh server downloads the cached dependency layer instead of building it.
+- `deploy` compares against the last deployed commit (`releases/deployed.json`) and runs web and
+  API in parallel. CloudFront changes don't block (`wait_for_deployment = false`).
+- Server CPU credits are `unlimited` (full speed; ~$0.02 surplus per build). Set
+  `cpu_credits = "standard"` in `infra/app` to forbid any surplus charge (builds get much slower).

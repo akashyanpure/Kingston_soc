@@ -2,8 +2,9 @@
 # GUARD stack — permanent, ~$0 while the app is down.
 #   • $10/month account-wide budget → email alerts, and a KILL SWITCH (Lambda) that
 #     terminates the app server and disables the CloudFront distribution.
-#   • CloudFront distribution (stable https://xxxx.cloudfront.net URL). When the app is
-#     down it serves an "offline" page from S3; when up it forwards to the server.
+#   • CloudFront distribution (stable https://xxxx.cloudfront.net URL). The web app (PWA)
+#     is always served from S3 (web/); /api/* goes to the server while UP and returns 503
+#     "switched off" while DOWN.
 #   • S3 bucket for releases and nightly/at-shutdown backups.
 #   • Secrets in SSM Parameter Store (standard tier = free).
 # Remove everything with:  .\infra\soc.ps1 nuke
@@ -33,7 +34,7 @@ locals {
   ssm_prefix = "/${var.project}"
 }
 
-# ── S3: releases + backups + offline page ────────────────────────────────────
+# ── S3: web app + releases + backups + image cache ────────────────────────────────────
 resource "aws_s3_bucket" "data" {
   bucket        = "${var.project}-data-${local.account_id}"
   force_destroy = true # `nuke` deletes backups too — that is the point of nuke
@@ -63,20 +64,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
     expiration { days = 7 }
   }
   rule {
+    id     = "expire-image-cache"
+    status = "Enabled"
+    filter { prefix = "cache/" }
+    expiration { days = 30 }
+  }
+  rule {
     id     = "expire-old-backups"
     status = "Enabled"
     filter { prefix = "backups/archive/" }
     expiration { days = var.backup_retention_days }
   }
-}
-
-resource "aws_s3_object" "offline_page" {
-  bucket        = aws_s3_bucket.data.id
-  key           = "offline/index.html"
-  content_type  = "text/html; charset=utf-8"
-  cache_control = "no-store"
-  content       = file("${path.module}/offline.html")
-  etag          = filemd5("${path.module}/offline.html")
 }
 
 # ── Secrets (persist across up/down so logins and backups keep working) ──────
@@ -119,28 +117,41 @@ resource "aws_cloudfront_origin_access_control" "s3" {
   signing_protocol                  = "sigv4"
 }
 
-# When the app is down: API calls get 503 (so the phone's sync keeps work queued — a 200
-# offline page would be mistaken for a successful upload); every other path shows the offline page.
-resource "aws_cloudfront_function" "offline" {
-  name    = "${var.project}-offline"
+# The web app (PWA) is static and served from S3 (prefix web/) at all times — deploying a UI
+# change is a local build + upload, no server involved. Only /api/* goes to the server.
+#
+# /api/* while the app is DOWN: 503 JSON, so the phone's sync keeps work queued
+# (a 200 would be mistaken for a successful upload).
+resource "aws_cloudfront_function" "api_offline" {
+  name    = "${var.project}-api-offline"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = <<-JS
+    function handler(event) {
+      return {
+        statusCode: 503,
+        statusDescription: 'Service Unavailable',
+        headers: {
+          'content-type': { value: 'application/json' },
+          'retry-after': { value: '300' },
+          'cache-control': { value: 'no-store' }
+        },
+        body: { encoding: 'text', data: '{"error":{"code":"SERVICE_OFFLINE","message":"Kingston SOC is switched off. Your work is kept on the device."}}' }
+      };
+    }
+  JS
+}
+
+# Single-page app routing: /visits/123 etc. serve /index.html; real files (with a dot) pass through.
+resource "aws_cloudfront_function" "spa" {
+  name    = "${var.project}-spa"
   runtime = "cloudfront-js-2.0"
   publish = true
   code    = <<-JS
     function handler(event) {
       var req = event.request;
-      if (req.uri.indexOf('/api/') === 0) {
-        return {
-          statusCode: 503,
-          statusDescription: 'Service Unavailable',
-          headers: {
-            'content-type': { value: 'application/json' },
-            'retry-after': { value: '300' },
-            'cache-control': { value: 'no-store' }
-          },
-          body: { encoding: 'text', data: '{"error":{"code":"SERVICE_OFFLINE","message":"Kingston SOC is switched off. Your work is kept on the device."}}' }
-        };
-      }
-      req.uri = '/offline/index.html';
+      var last = req.uri.substring(req.uri.lastIndexOf('/') + 1);
+      if (last === '' || last.indexOf('.') === -1) { req.uri = '/index.html'; }
       return req;
     }
   JS
@@ -149,20 +160,23 @@ resource "aws_cloudfront_function" "offline" {
 # AWS managed policies (fixed, documented IDs)
 locals {
   cache_disabled_policy  = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # Managed-CachingDisabled
-  cache_optimized_policy = "658327ea-f89d-4fab-a63d-7e88639e58f6" # Managed-CachingOptimized
+  cache_optimized_policy = "658327ea-f89d-4fab-a63d-7e88639e58f6" # Managed-CachingOptimized (honours Cache-Control from S3)
   all_viewer_orp         = "216adef6-5c7f-47e4-b989-5492eafa07d3" # Managed-AllViewer
 }
 
 resource "aws_cloudfront_distribution" "app" {
-  enabled         = true # kill switch sets this false; the next `up` turns it back on
-  comment         = "${var.project} (${local.app_up ? "UP" : "offline"})"
-  price_class     = "PriceClass_100"
-  is_ipv6_enabled = true
-  http_version    = "http2and3"
+  enabled             = true # kill switch sets this false; the next `up` turns it back on
+  comment             = "${var.project} (api ${local.app_up ? "UP" : "offline"})"
+  price_class         = "PriceClass_100"
+  is_ipv6_enabled     = true
+  http_version        = "http2and3"
+  default_root_object = "index.html"
+  wait_for_deployment = false # `soc.ps1` waits on /api/health instead of ~3-5 min of global propagation
 
   origin {
-    origin_id                = "offline"
+    origin_id                = "web"
     domain_name              = aws_s3_bucket.data.bucket_regional_domain_name
+    origin_path              = "/web"
     origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
   }
 
@@ -174,7 +188,7 @@ resource "aws_cloudfront_distribution" "app" {
       custom_origin_config {
         http_port              = 80
         https_port             = 443
-        origin_protocol_policy = "http-only" # CloudFront ↔ server; server only accepts CloudFront IPs + secret header
+        origin_protocol_policy = "http-only" # CloudFront <-> server; server only accepts CloudFront IPs + secret header
         origin_ssl_protocols   = ["TLSv1.2"]
         origin_read_timeout    = 60
       }
@@ -185,8 +199,25 @@ resource "aws_cloudfront_distribution" "app" {
     }
   }
 
+  # Web app from S3. index.html / sw.js are uploaded with Cache-Control: no-cache, hashed
+  # assets with a 1-year immutable max-age, so CachingOptimized does the right thing.
   default_cache_behavior {
-    target_origin_id         = local.app_up ? "app" : "offline"
+    target_origin_id       = "web"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+    cache_policy_id        = local.cache_optimized_policy
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa.arn
+    }
+  }
+
+  ordered_cache_behavior {
+    path_pattern             = "/api/*"
+    target_origin_id         = local.app_up ? "app" : "web"
     viewer_protocol_policy   = "redirect-to-https"
     allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods           = ["GET", "HEAD"]
@@ -198,22 +229,8 @@ resource "aws_cloudfront_distribution" "app" {
       for_each = local.app_up ? [] : [1]
       content {
         event_type   = "viewer-request"
-        function_arn = aws_cloudfront_function.offline.arn
+        function_arn = aws_cloudfront_function.api_offline.arn
       }
-    }
-  }
-
-  # Hashed static assets are safe to cache at the edge.
-  dynamic "ordered_cache_behavior" {
-    for_each = local.app_up ? [1] : []
-    content {
-      path_pattern           = "/assets/*"
-      target_origin_id       = "app"
-      viewer_protocol_policy = "redirect-to-https"
-      allowed_methods        = ["GET", "HEAD"]
-      cached_methods         = ["GET", "HEAD"]
-      compress               = true
-      cache_policy_id        = local.cache_optimized_policy
     }
   }
 
@@ -230,9 +247,9 @@ resource "aws_cloudfront_distribution" "app" {
 
 data "aws_iam_policy_document" "bucket" {
   statement {
-    sid       = "CloudFrontReadsOfflinePage"
+    sid       = "CloudFrontReadsWebApp"
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.data.arn}/offline/*"]
+    resources = ["${aws_s3_bucket.data.arn}/web/*"]
     principals {
       type        = "Service"
       identifiers = ["cloudfront.amazonaws.com"]

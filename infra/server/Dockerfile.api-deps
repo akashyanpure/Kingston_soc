@@ -1,0 +1,16 @@
+# Heavy, rarely-changing layer: Node packages + Chromium. Built only when the package
+# manifests / lockfile change (deploy.sh hashes them), and cached in S3 so a fresh server
+# downloads it instead of building it (~1 min instead of ~12).
+FROM node:26-bookworm-slim
+ENV CI=true
+RUN npm install -g pnpm@10.34.9
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages/db/package.json packages/db/
+COPY packages/report/package.json packages/report/
+COPY packages/shared/package.json packages/shared/
+RUN pnpm install --frozen-lockfile --filter kingston-soc --filter "@soc/api..." \
+ && cd apps/api && npx playwright install --with-deps chromium \
+ && rm -rf /var/lib/apt/lists/* /root/.npm /root/.local/share/pnpm/store

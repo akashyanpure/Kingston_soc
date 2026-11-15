@@ -31,12 +31,15 @@ services:
       db:
         condition: service_healthy
 
+  # Reverse proxy for /api only (the web app is served from S3 by CloudFront).
   web:
-    image: soc-web:latest
+    image: caddy:2-alpine
     container_name: soc-web
     restart: unless-stopped
     environment:
       ORIGIN_SECRET: ${ORIGIN_SECRET}
+    volumes:
+      - /opt/soc/Caddyfile:/etc/caddy/Caddyfile:ro
     ports:
       - "80:80"
     depends_on:

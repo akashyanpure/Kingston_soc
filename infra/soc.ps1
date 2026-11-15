@@ -5,10 +5,14 @@
 .DESCRIPTION
   init     One-time: check tools + AWS login, create the GUARD stack ($10 cap, kill switch,
             CloudFront URL, S3 bucket, secrets). Asks for your alert email the first time.
-  up        Create the server, deploy the committed code, restore the latest backup (or seed),
-            switch CloudFront to the app. Prints the URL. ~10-15 min.
-  deploy    While UP: ship the latest commit to the running server (rebuild + restart).
-  down      Back up to S3, switch CloudFront to the offline page, DESTROY the server. $0 after.
+  up        Upload the web app, create the server, deploy the committed API code, restore the
+            latest backup (or seed). ~5 min (first ever ~20 min while the dependency cache builds).
+  deploy    Ship what changed since the last deploy, in parallel:
+              web (apps/web, shared, report)   -> local build + S3 upload, ~1 min, no server needed
+              api (apps/api, db, infra/server) -> code layer rebuild on the server, ~1-2 min
+            Force one side with -Web or -Api. The web app can be deployed even while DOWN.
+  down      Back up to S3, switch the API to 'switched off' (503), DESTROY the server. $0 after.
+            The web app stays online (phones keep working offline and sync later).
   status    Up/down, URL, health, month-to-date spend vs the $10 cap.
   cost      Month-to-date spend and forecast.
   backup    While UP: back up database + files to S3 now.
@@ -21,7 +25,9 @@ param(
   [Parameter(Position = 0)]
   [ValidateSet('init', 'up', 'deploy', 'down', 'status', 'cost', 'backup', 'logs', 'users', 'killtest', 'nuke', 'help')]
   [string]$Command = 'help',
-  [switch]$Force
+  [switch]$Force,
+  [switch]$Web,
+  [switch]$Api
 )
 
 # 'Continue': in Windows PowerShell 5.1, 'Stop' turns any stderr line from aws/terraform into a
@@ -45,6 +51,7 @@ function Find-Exe($name, $extra) {
 }
 $TF = Find-Exe 'terraform' @("$env:LOCALAPPDATA\Microsoft\WinGet\Links\terraform.exe")
 $AWS = Find-Exe 'aws' @("$env:ProgramFiles\Amazon\AWSCLIV2\aws.exe")
+$PNPM = Find-Exe 'pnpm' @("$env:APPDATA\npm\pnpm.cmd")
 
 function TF {
   param([string]$Dir, [Parameter(ValueFromRemainingArguments = $true)][string[]]$TfArgs)
@@ -84,6 +91,7 @@ function Get-Guard {
     Prefix = TFOut $Guard 'ssm_prefix'
     Kill   = TFOut $Guard 'killswitch_function'
     Budget = TFOut $Guard 'budget_name'
+    Dist   = TFOut $Guard 'distribution_id'
   }
 }
 
@@ -116,8 +124,9 @@ function Publish-Release($g) {
   } finally { Pop-Location }
 }
 
-# Run shell commands on the server through SSM (no SSH). Returns stdout; fails on error.
-function Invoke-Remote($instanceId, [string[]]$lines, [int]$timeoutSec = 1800) {
+# Run shell commands on the server through SSM (no SSH).
+# Start-Remote returns at once (so other work can run in parallel); Wait-Remote collects the result.
+function Start-Remote($instanceId, [string[]]$lines, [int]$timeoutSec = 1800) {
   $req = @{
     InstanceIds    = @($instanceId)
     DocumentName   = 'AWS-RunShellScript'
@@ -127,11 +136,13 @@ function Invoke-Remote($instanceId, [string[]]$lines, [int]$timeoutSec = 1800) {
   $f = Join-Path $env:TEMP 'soc-ssm.json'
   [IO.File]::WriteAllText($f, $req)
   $sent = AwsJson ssm send-command --cli-input-json "file://$f"
-  $cmdId = $sent.Command.CommandId
-  $deadline = (Get-Date).AddSeconds($timeoutSec + 120)
+  return @{ Id = $sent.Command.CommandId; Instance = $instanceId; Timeout = $timeoutSec }
+}
+function Wait-Remote($job) {
+  $deadline = (Get-Date).AddSeconds($job.Timeout + 120)
   do {
     Start-Sleep -Seconds 5
-    $inv = & $AWS ssm get-command-invocation --command-id $cmdId --instance-id $instanceId --output json 2>$null | Out-String
+    $inv = & $AWS ssm get-command-invocation --command-id $job.Id --instance-id $job.Instance --output json 2>$null | Out-String
     if ($LASTEXITCODE -ne 0) { continue }
     $inv = $inv | ConvertFrom-Json
     Write-Host -NoNewline '.'
@@ -144,6 +155,68 @@ function Invoke-Remote($instanceId, [string[]]$lines, [int]$timeoutSec = 1800) {
   }
   return $inv.StandardOutputContent
 }
+function Invoke-Remote($instanceId, [string[]]$lines, [int]$timeoutSec = 1800) {
+  return Wait-Remote (Start-Remote $instanceId $lines $timeoutSec)
+}
+
+# -- Web app: built on this PC, served by CloudFront from S3 (no server involved) --
+function Deploy-Web($g) {
+  Push-Location $Root
+  try {
+    $dirty = git status --porcelain -- apps/web packages/shared packages/report
+    if ($dirty) { Write-Host 'NOTE: the web build includes uncommitted changes in apps/web, shared or report.' -ForegroundColor Yellow }
+    Say 'web: building locally'
+    & $PNPM --filter @soc/web build | Out-Null
+    if ($LASTEXITCODE -ne 0) { Fail 'web build failed (run: pnpm --filter @soc/web build)' }
+    $dist = Join-Path $Root 'apps\web\dist'
+    Say 'web: uploading to S3'
+    # Hashed assets: cache for a year. Everything else (index.html, sw.js, manifest, icons): always revalidate.
+    & $AWS s3 sync "$dist\assets" "s3://$($g.Bucket)/web/assets" --exclude '*.map' --cache-control 'public,max-age=31536000,immutable' --only-show-errors
+    if ($LASTEXITCODE -ne 0) { Fail 'web upload (assets) failed' }
+    & $AWS s3 sync $dist "s3://$($g.Bucket)/web" --delete --exclude 'assets/*' --exclude '*.map' --cache-control 'no-cache' --only-show-errors
+    if ($LASTEXITCODE -ne 0) { Fail 'web upload failed' }
+    & $AWS cloudfront create-invalidation --distribution-id $g.Dist --paths '/*' --output text | Out-Null
+    Write-Host 'web: live (CloudFront refresh ~30-60 s; installed apps update on next open)'
+  } finally { Pop-Location }
+}
+
+$WebPaths = @('apps/web/', 'packages/shared/', 'packages/report/', 'pnpm-lock.yaml', 'package.json')
+$ApiPaths = @('apps/api/', 'packages/db/', 'packages/shared/', 'packages/report/', 'infra/server/', 'pnpm-lock.yaml', 'package.json')
+
+function Get-Deployed($g) {
+  $f = Join-Path $env:TEMP 'soc-deployed.json'
+  if (Test-Path $f) { Remove-Item $f }
+  & $AWS s3 cp "s3://$($g.Bucket)/releases/deployed.json" $f --only-show-errors 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $f)) { return @{ web = ''; api = '' } }
+  $j = Get-Content $f -Raw | ConvertFrom-Json
+  Remove-Item $f -ErrorAction SilentlyContinue
+  return @{ web = "$($j.web)"; api = "$($j.api)" }
+}
+function Set-Deployed($g, $d) {
+  $f = Join-Path $env:TEMP 'soc-deployed.json'
+  [IO.File]::WriteAllText($f, (@{ web = $d.web; api = $d.api } | ConvertTo-Json))
+  & $AWS s3 cp $f "s3://$($g.Bucket)/releases/deployed.json" --only-show-errors | Out-Null
+  Remove-Item $f -ErrorAction SilentlyContinue
+}
+function Test-Changed($sha, $paths) {
+  if ([string]::IsNullOrWhiteSpace($sha)) { return $true }
+  Push-Location $Root
+  try {
+    $files = git diff --name-only $sha HEAD 2>$null
+    if ($LASTEXITCODE -ne 0) { return $true }
+    foreach ($file in $files) { foreach ($p in $paths) { if ($file.StartsWith($p)) { return $true } } }
+    return $false
+  } finally { Pop-Location }
+}
+function Get-HeadSha { Push-Location $Root; try { return (git rev-parse --short HEAD).Trim() } finally { Pop-Location } }
+
+$DeployApiLines = @(
+  'set -euo pipefail', 'source /opt/soc/instance.env',
+  'aws s3 cp --only-show-errors "s3://$BUCKET/releases/latest.tar.gz" /opt/soc/release.tar.gz',
+  'rm -rf /opt/soc/src.new && mkdir -p /opt/soc/src.new && tar -xzf /opt/soc/release.tar.gz -C /opt/soc/src.new',
+  'rm -rf /opt/soc/src && mv /opt/soc/src.new /opt/soc/src',
+  'bash /opt/soc/src/infra/server/deploy.sh'
+)
 
 function Wait-SsmOnline($instanceId) {
   Say 'waiting for the server to register with SSM'
@@ -156,7 +229,7 @@ function Wait-SsmOnline($instanceId) {
 }
 
 function Wait-Healthy($url, [int]$minutes = 30) {
-  Say "waiting for $url/api/health (first build ~10-15 min on the small server)"
+  Say "waiting for $url/api/health (fresh server ~4-6 min)"
   $deadline = (Get-Date).AddMinutes($minutes)
   while ((Get-Date) -lt $deadline) {
     try {
@@ -164,7 +237,7 @@ function Wait-Healthy($url, [int]$minutes = 30) {
       if ($r.StatusCode -eq 200 -and $r.Content -match '"ok":true') { Write-Host ''; return $true }
     } catch { }
     Write-Host -NoNewline '.'
-    Start-Sleep -Seconds 15
+    Start-Sleep -Seconds 5
   }
   Write-Host ''
   return $false
@@ -197,7 +270,9 @@ switch ($Command) {
     Say 'creating GUARD stack (budget, kill switch, CloudFront, bucket, secrets) - CloudFront takes ~5 min'
     TF $Guard apply -auto-approve -input=false
     $g = Get-Guard
-    Say "READY. App URL (offline until 'up'): $($g.Url)" 'Green'
+    Deploy-Web $g
+    $d = Get-Deployed $g; $d.web = Get-HeadSha; Set-Deployed $g $d
+    Say "READY. App URL: $($g.Url)  (the API is 'switched off' until 'up')" 'Green'
     Write-Host 'Budget alerts (50% / 100% / forecast) go to your email. Kill switch: off unless enable_killswitch = true.' -ForegroundColor Yellow
   }
 
@@ -209,9 +284,12 @@ switch ($Command) {
     Say 'creating the server (APP stack)'
     TF $App apply -auto-approve -input=false
     $dns = TFOut $App 'public_dns'
-    Say 'pointing CloudFront at the server (~3-5 min)'
+    Say 'pointing CloudFront at the server'
     Set-Origin $dns
+    # The server is now booting on its own (~3-5 min); upload the web app meanwhile.
+    Deploy-Web $g
     if (Wait-Healthy $g.Url) {
+      $sha = Get-HeadSha; Set-Deployed $g @{ web = $sha; api = $sha }
       Say "UP: $($g.Url)" 'Green'
       Write-Host "Logins: .\infra\soc.ps1 users   |   Stop paying: .\infra\soc.ps1 down"
     } else {
@@ -221,18 +299,35 @@ switch ($Command) {
 
   'deploy' {
     Assert-Login; Assert-GuardReady
-    $id = Get-InstanceId; if (-not $id) { Fail "the app is down - use 'up'" }
     $g = Get-Guard
-    Publish-Release $g
-    Say 'rebuilding on the server'
-    Invoke-Remote $id @(
-      'set -euo pipefail', 'source /opt/soc/instance.env',
-      'aws s3 cp --only-show-errors "s3://$BUCKET/releases/latest.tar.gz" /opt/soc/release.tar.gz',
-      'rm -rf /opt/soc/src.new && mkdir -p /opt/soc/src.new && tar -xzf /opt/soc/release.tar.gz -C /opt/soc/src.new',
-      'rm -rf /opt/soc/src && mv /opt/soc/src.new /opt/soc/src',
-      'bash /opt/soc/src/infra/server/deploy.sh'
-    ) 2400 | Out-Null
-    if (Wait-Healthy $g.Url 10) { Say 'DEPLOYED' 'Green' } else { Fail 'deployed, but health check is failing - see logs' }
+    $id = Get-InstanceId
+    $d = Get-Deployed $g
+    $doWeb = $Web -or (-not $Api -and (Test-Changed $d.web $WebPaths))
+    $doApi = $Api -or (-not $Web -and (Test-Changed $d.api $ApiPaths))
+    if ($doApi -and -not $id) {
+      if ($Api) { Fail "the server is down - use 'up' (it deploys the API)" }
+      Write-Host 'API changes will go out with the next up (the server is down).' -ForegroundColor Yellow
+      $doApi = $false
+    }
+    if (-not $doWeb -and -not $doApi) { Say 'nothing changed since the last deploy (force with -Web or -Api)' 'Green'; break }
+    $sha = Get-HeadSha
+    $parts = @(); if ($doWeb) { $parts += 'web' }; if ($doApi) { $parts += 'api' }
+    Write-Host ("Deploying {0} at {1}" -f ($parts -join ' + '), $sha)
+    $job = $null
+    if ($doApi) {
+      Publish-Release $g
+      Say 'api: rebuilding the code layer on the server (in parallel)'
+      $job = Start-Remote $id $DeployApiLines 2400
+    }
+    if ($doWeb) { Deploy-Web $g; $d.web = $sha }
+    if ($job) {
+      Say 'api: waiting for the server'
+      Wait-Remote $job | Out-Null
+      if (-not (Wait-Healthy $g.Url 10)) { Fail 'API deployed, but the health check is failing - see logs' }
+      $d.api = $sha
+    }
+    Set-Deployed $g $d
+    Say 'DEPLOYED' 'Green'
   }
 
   'down' {
@@ -246,7 +341,7 @@ switch ($Command) {
         Write-Host "backup failed, continuing because of -Force" -ForegroundColor Yellow
       }
     }
-    Say 'switching CloudFront to the offline page'
+    Say "switching the API to 'switched off'"
     Set-Origin ''
     if (Test-Path (Join-Path $App 'terraform.tfstate')) {
       Say 'destroying the server (APP stack)'

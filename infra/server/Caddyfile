@@ -8,6 +8,7 @@
 	}
 }
 
+# The web app is served by CloudFront from S3; this server only answers /api/*.
 :80 {
 	# Reject anything that did not come through our CloudFront distribution.
 	@notCloudFront not header X-Origin-Verify {$ORIGIN_SECRET}
@@ -20,11 +21,6 @@
 	}
 
 	handle {
-		root * /srv
-		# The service worker and app shell must never be cached stale.
-		@noCache path /sw.js /index.html /manifest.webmanifest /
-		header @noCache Cache-Control "no-cache"
-		try_files {path} /index.html
-		file_server
+		respond "Not found" 404
 	}
 }

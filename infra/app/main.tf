@@ -122,9 +122,13 @@ data "aws_iam_policy_document" "server" {
     resources = ["arn:aws:s3:::${local.g.bucket}"]
   }
   statement {
-    sid       = "Objects"
-    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-    resources = ["arn:aws:s3:::${local.g.bucket}/releases/*", "arn:aws:s3:::${local.g.bucket}/backups/*"]
+    sid     = "Objects"
+    actions = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    resources = [
+      "arn:aws:s3:::${local.g.bucket}/releases/*",
+      "arn:aws:s3:::${local.g.bucket}/backups/*",
+      "arn:aws:s3:::${local.g.bucket}/cache/*", # dependency-image cache (fast deploys / fresh servers)
+    ]
   }
   statement {
     sid       = "Secrets"
@@ -170,9 +174,11 @@ resource "aws_instance" "server" {
   vpc_security_group_ids = [aws_security_group.server.id]
   iam_instance_profile   = aws_iam_instance_profile.server.name
 
-  # t4g defaults to "unlimited" CPU credits, which can bill extra. "standard" never does.
+  # "unlimited": full CPU for builds and PDF rendering. A fresh t4g starts with no credits, so
+  # "standard" throttles it to 10% (that made the first build ~20 min). Surplus CPU costs
+  # ~$0.04/vCPU-hour only when used above baseline: ~$0.02 per build, budget alerts apply.
   credit_specification {
-    cpu_credits = "standard"
+    cpu_credits = var.cpu_credits
   }
 
   metadata_options {

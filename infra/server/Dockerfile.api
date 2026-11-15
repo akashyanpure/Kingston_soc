@@ -1,13 +1,7 @@
-# API + PDF worker (Chromium). Built ON the server from the release tarball (repo root = context).
-FROM node:26-bookworm-slim
-ENV CI=true
-RUN npm install -g pnpm@10.34.9
-WORKDIR /app
+# Thin code layer on top of the cached dependency image (Dockerfile.api-deps).
+# A normal API deploy only rebuilds this: copy the source, restart. ~30-60 s.
+FROM soc-api-deps:latest
 COPY . .
-# Root (tsx) + the API and its workspace dependencies only.
-RUN pnpm install --frozen-lockfile --filter kingston-soc --filter "@soc/api..." \
- && cd apps/api && npx playwright install --with-deps chromium \
- && rm -rf /var/lib/apt/lists/* /root/.npm /root/.local/share/pnpm/store
 ENV NODE_ENV=production
 WORKDIR /app/apps/api
 EXPOSE 4000

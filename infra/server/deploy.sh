@@ -30,10 +30,33 @@ ADDRESS_PROVIDER=postcodes_io
 EOF
 umask 022
 
-echo "== building images (first build on t4g.micro takes ~10 min)"
 export DOCKER_BUILDKIT=0 # classic builder: no buildx plugin needed
+
+# 1) Dependency image (Node packages + Chromium): keyed by a hash of the manifests.
+#    local image → S3 cache → build (and upload to S3 in the background for next time).
+DEPS_HASH="$(cat "$SRC/package.json" "$SRC/pnpm-lock.yaml" "$SRC/pnpm-workspace.yaml" \
+  "$SRC"/apps/*/package.json "$SRC"/packages/*/package.json "$SERVER/Dockerfile.api-deps" | sha256sum | cut -c1-16)"
+DEPS_TAG="soc-api-deps:$DEPS_HASH"
+DEPS_S3="s3://$BUCKET/cache/api-deps-$DEPS_HASH.tar.gz"
+if docker image inspect "$DEPS_TAG" >/dev/null 2>&1; then
+  echo "== dependency image $DEPS_HASH: already on this server"
+elif aws s3 ls "$DEPS_S3" >/dev/null 2>&1; then
+  echo "== dependency image $DEPS_HASH: downloading from S3 cache"
+  aws s3 cp --only-show-errors "$DEPS_S3" - | gunzip | docker load -q
+else
+  echo "== dependency image $DEPS_HASH: building (packages or lockfile changed; ~10 min on t4g.micro)"
+  docker build -q -t "$DEPS_TAG" -f "$SERVER/Dockerfile.api-deps" "$SRC"
+  ( docker save "$DEPS_TAG" | gzip -1 | aws s3 cp --only-show-errors - "$DEPS_S3" \
+      && echo "cached $DEPS_TAG in S3" ) >> /var/log/soc-cache-upload.log 2>&1 &
+fi
+docker tag "$DEPS_TAG" soc-api-deps:latest
+
+# 2) Code image: just the source on top (~30-60 s).
+echo "== building code image"
 docker build -q -t soc-api:latest -f "$SERVER/Dockerfile.api" "$SRC"
-docker build -q -t soc-web:latest -f "$SERVER/Dockerfile.web" "$SRC"
+
+# Caddy config at a stable path (src/ is replaced on every deploy).
+install -m 644 "$SERVER/Caddyfile" /opt/soc/Caddyfile
 
 COMPOSE=(docker compose -f "$SERVER/docker-compose.yml" --env-file /opt/soc/app.env)
 "${COMPOSE[@]}" up -d db
@@ -51,6 +74,10 @@ echo "== migrations"
 "${COMPOSE[@]}" run --rm --no-deps -w /app/packages/db api /app/node_modules/.bin/tsx src/migrate.ts
 
 "${COMPOSE[@]}" up -d --remove-orphans
+docker restart soc-web >/dev/null # pick up a changed Caddyfile (restart takes ~1 s)
+# Remove dangling layers and old dependency images (keep the current one).
+docker images --format '{{.Repository}}:{{.Tag}}' | grep '^soc-api-deps:' | grep -v -e ":$DEPS_HASH\$" -e ':latest$' | xargs -r docker rmi -f >/dev/null 2>&1 || true
+docker rmi soc-web:latest >/dev/null 2>&1 || true # web image no longer used (web is on S3)
 docker image prune -f >/dev/null
 
 # Daily backup at 02:30 UTC while the server is up (down also backs up first).
