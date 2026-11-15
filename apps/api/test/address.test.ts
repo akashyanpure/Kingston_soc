@@ -201,3 +201,12 @@ describe('postcodes.io autocomplete for a bare outward code', () => {
     expect(g.calls.length).toBe(1);
   });
 });
+
+describe('postcodes.io autocomplete with an explicit district', () => {
+  it('drops postcodes from a different district when the user typed a space (KT1 1 is not KT11)', async () => {
+    const f = fakeFetch({ '/postcodes/KT1%201/autocomplete': () => json(200, { result: ['KT11 1AA', 'KT11 1AB'] }) });
+    expect(await new PostcodesIoLookup(f.fn).autocomplete('KT1 1')).toEqual([]);
+    const g = fakeFetch({ '/postcodes/KT1%201A/autocomplete': () => json(200, { result: ['KT1 1AA', 'KT1 1AB'] }) });
+    expect(await new PostcodesIoLookup(g.fn).autocomplete('kt1 1a')).toEqual(['KT1 1AA', 'KT1 1AB']);
+  });
+});

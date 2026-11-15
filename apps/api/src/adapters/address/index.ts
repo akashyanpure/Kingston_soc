@@ -112,6 +112,12 @@ export class PostcodesIoLookup implements AddressLookup {
     const lists = await Promise.all(candidates.map((c) => this.autocompleteRaw(c)));
     const out: string[] = [];
     for (const list of lists) for (const pc of list) if (!out.includes(pc)) out.push(pc);
+    // postcodes.io ignores spaces ("KT1 1" == "KT11"), so when the user typed a space the
+    // district is explicit: keep only postcodes in exactly that district. "KT1 1A" then works.
+    if (s.includes(' ')) {
+      const district = s.split(' ')[0];
+      return out.filter((pc) => pc.split(' ')[0] === district).slice(0, 10);
+    }
     return (OUTWARD.test(s) ? out.filter((pc) => keepForShortInput(pc, s)) : out).slice(0, 10);
   }
 
