@@ -6,3 +6,4 @@ export * from './rules.js';
 export * from './content.js';
 export * from './api.js';
 export * from './roles.js';
+export * from './address.js';
