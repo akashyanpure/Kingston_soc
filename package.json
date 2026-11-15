@@ -1,0 +1,26 @@
+{
+  "name": "kingston-soc",
+  "private": true,
+  "description": "Kingston Council Schedule of Condition — mobile-first inventory web app",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.34.9",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @soc/api --filter @soc/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @soc/db generate",
+    "db:migrate": "pnpm --filter @soc/db migrate",
+    "db:seed": "pnpm --filter @soc/db seed",
+    "db:reset": "pnpm --filter @soc/db reset"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

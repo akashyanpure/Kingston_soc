@@ -1,0 +1,1253 @@
+{
+ "source": "Project_info_files/SOC TEMPLATE (PLS).docx",
+ "note": "Generated from the Word tables. Labels are verbatim (including template typos); codes are normalised identifiers.",
+ "condition_options": [
+  "G",
+  "F",
+  "P"
+ ],
+ "item_columns": [
+  "ITEM",
+  "Qty",
+  "DESCRIPTION",
+  "CONDITION",
+  "COMMENT",
+  "SCHEDULE OF DILAPIDATION"
+ ],
+ "general_schedule": [
+  [
+   "SCHEDULE OF CONDITION"
+  ],
+  [
+   "DESCRIPTION OF PROPERTY",
+   ".",
+   ""
+  ],
+  [
+   "GENERAL CONDITION",
+   "",
+   ""
+  ],
+  [
+   "WINDOWS",
+   "UVPC Double Glazed",
+   ""
+  ],
+  [
+   "HEATING",
+   "Central Heating",
+   ""
+  ],
+  [
+   "KITCHEN APPLIANCES",
+   "MAKE",
+   "MODEL"
+  ],
+  [
+   "HOB",
+   "",
+   ""
+  ],
+  [
+   "OVEN",
+   "",
+   ""
+  ],
+  [
+   "EXTRACTOR",
+   "",
+   ""
+  ]
+ ],
+ "meters": [
+  [
+   "SERVICE",
+   "LOCATION",
+   "READING IN (Council/landlord to complete)",
+   "READING OUT (Council/landlord to complete)"
+  ],
+  [
+   "ELECTRICITY",
+   "",
+   "",
+   ""
+  ],
+  [
+   "GAS",
+   "",
+   "",
+   ""
+  ],
+  [
+   "WATER",
+   "",
+   "",
+   ""
+  ],
+  [
+   "STOPCOCK",
+   "",
+   "",
+   ""
+  ]
+ ],
+ "rooms": [
+  {
+   "code": "FRONT_GARDEN",
+   "label": "FRONT GARDEN",
+   "items": [
+    {
+     "code": "BOUNDARY",
+     "label": "BOUNDARY"
+    },
+    {
+     "code": "GATE",
+     "label": "GATE"
+    },
+    {
+     "code": "OFF_STREET_PARKING",
+     "label": "OFF STREET PARKING"
+    },
+    {
+     "code": "LAWN",
+     "label": "LAWN"
+    },
+    {
+     "code": "BORDERS",
+     "label": "BORDERS"
+    },
+    {
+     "code": "PATH",
+     "label": "PATH"
+    }
+   ]
+  },
+  {
+   "code": "BACK_GARDEN",
+   "label": "BACK GARDEN",
+   "items": [
+    {
+     "code": "BOUNDARY",
+     "label": "BOUNDARY"
+    },
+    {
+     "code": "PATIO",
+     "label": "PATIO"
+    },
+    {
+     "code": "LAWN",
+     "label": "LAWN"
+    },
+    {
+     "code": "SHED",
+     "label": "SHED"
+    },
+    {
+     "code": "GARAGE",
+     "label": "GARAGE"
+    }
+   ]
+  },
+  {
+   "code": "FRONT_DOOR",
+   "label": "FRONT DOOR",
+   "items": [
+    {
+     "code": "PORCH",
+     "label": "PORCH"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "DOOR_BELL",
+     "label": "DOOR BELL"
+    },
+    {
+     "code": "KNOCKER",
+     "label": "KNOCKER"
+    },
+    {
+     "code": "SPY_HOLE",
+     "label": "SPY HOLE"
+    },
+    {
+     "code": "NUMERALS",
+     "label": "NUMERALS"
+    },
+    {
+     "code": "LETTERBOX",
+     "label": "LETTERBOX"
+    },
+    {
+     "code": "LIGHT",
+     "label": "LIGHT"
+    },
+    {
+     "code": "LOCKS",
+     "label": "Locks"
+    }
+   ]
+  },
+  {
+   "code": "HALLWAY",
+   "label": "HALLWAY",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "CUPBOARD",
+     "label": "CUPBOARD"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLESOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "INTERCOM",
+     "label": "INTERCOM"
+    },
+    {
+     "code": "ALARM",
+     "label": "ALARM"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "RECEPTION",
+   "label": "RECEPTION",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "PATIO_DOORS",
+     "label": "PATIO DOORS"
+    },
+    {
+     "code": "CUPBOARD",
+     "label": "CUPBOARD"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "INTERCOM",
+     "label": "INTERCOM"
+    },
+    {
+     "code": "ALARM",
+     "label": "ALARM"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "CONSERVATORY",
+   "label": "CONSERVATORY",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "CUPBOARD",
+     "label": "CUPBOARD"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "ALARM",
+     "label": "ALARM"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "KITCHEN",
+   "label": "KITCHEN",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "BACK_DOOR",
+     "label": "BACK DOOR"
+    },
+    {
+     "code": "BASE_UNITS_SINGLE",
+     "label": "BASE UNITS SINGLE"
+    },
+    {
+     "code": "BASE_UNITS_DOUBLE",
+     "label": "BASE UNITS DOUBLE"
+    },
+    {
+     "code": "WALL_UNITS_SINGLE",
+     "label": "WALL UNITS SINGLE"
+    },
+    {
+     "code": "WALL_UNITS_DOUBLE",
+     "label": "WALL UNITS DOUBLE"
+    },
+    {
+     "code": "CORNER_WALL_UNITS",
+     "label": "CORNER WALL UNITS"
+    },
+    {
+     "code": "WORK_SURFACE",
+     "label": "WORK SURFACE"
+    },
+    {
+     "code": "SINK",
+     "label": "SINK"
+    },
+    {
+     "code": "TAP",
+     "label": "TAP"
+    },
+    {
+     "code": "BACKSPLASH",
+     "label": "BACKSPLASH"
+    },
+    {
+     "code": "OVEN",
+     "label": "OVEN"
+    },
+    {
+     "code": "HOB",
+     "label": "HOB"
+    },
+    {
+     "code": "GRILL",
+     "label": "GRILL"
+    },
+    {
+     "code": "EXTRACTOR",
+     "label": "EXTRACTOR"
+    },
+    {
+     "code": "BOILER",
+     "label": "BOILER"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "COOKER_SWITCH",
+     "label": "COOKER SWITCH"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "ALARM",
+     "label": "ALARM"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "UTILITY",
+   "label": "UTILITY",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "BACK_DOOR",
+     "label": "BACK DOOR"
+    },
+    {
+     "code": "BASE_UNITS_SINGLE",
+     "label": "BASE UNITS SINGLE"
+    },
+    {
+     "code": "BASE_UNITS_DOUBLE",
+     "label": "BASE UNITS DOUBLE"
+    },
+    {
+     "code": "WALL_UNITS_SINGLE",
+     "label": "WALL UNITS SINGLE"
+    },
+    {
+     "code": "WALL_UNITS_DOUBLE",
+     "label": "WALL UNITS DOUBLE"
+    },
+    {
+     "code": "WORK_SURFACE",
+     "label": "WORK SURFACE"
+    },
+    {
+     "code": "SINK",
+     "label": "SINK"
+    },
+    {
+     "code": "TAP",
+     "label": "TAP"
+    },
+    {
+     "code": "BACKSPLASH",
+     "label": "BACKSPLASH"
+    },
+    {
+     "code": "BOILER",
+     "label": "BOILER"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    }
+   ]
+  },
+  {
+   "code": "STAIRS_AND_LANDING",
+   "label": "STAIRS AND LANDING",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "BANISTER",
+     "label": "BANISTER"
+    },
+    {
+     "code": "HANDRAIL",
+     "label": "HANDRAIL"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "CUPBOARD",
+     "label": "CUPBOARD"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "ALARM",
+     "label": "ALARM"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "BEDROOM_1",
+   "label": "BEDROOM 1",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "BEDROOM_2",
+   "label": "BEDROOM 2",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "BEDROOM_3",
+   "label": "BEDROOM 3",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "BEDROOM_4",
+   "label": "BEDROOM 4",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "DOUBLE_SOCKET",
+     "label": "DOUBLE SOCKET"
+    },
+    {
+     "code": "SINGLE_SOCKET",
+     "label": "SINGLE SOCKET"
+    },
+    {
+     "code": "SINGLE_LIGHT_SWITCH",
+     "label": "SINGLE LIGHT SWITCH"
+    },
+    {
+     "code": "DOUBLE_LIGHT_SWITCH",
+     "label": "DOUBLE LIGHT SWITCH"
+    },
+    {
+     "code": "TELEPHONE_SOCKET",
+     "label": "TELEPHONE SOCKET"
+    },
+    {
+     "code": "CABLE_BOX",
+     "label": "CABLE BOX"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "AERIAL",
+     "label": "AERIAL"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "BATHROOM",
+   "label": "BATHROOM",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "BATH",
+     "label": "BATH"
+    },
+    {
+     "code": "BATH_TAPS",
+     "label": "BATH TAPS"
+    },
+    {
+     "code": "SHOWER",
+     "label": "SHOWER"
+    },
+    {
+     "code": "SINK",
+     "label": "SINK"
+    },
+    {
+     "code": "WATER_CLOSET",
+     "label": "WATER CLOSET"
+    },
+    {
+     "code": "BATHROOM_FITTINGS",
+     "label": "BATHROOM FITTINGS"
+    },
+    {
+     "code": "CUPBOARD",
+     "label": "CUPBOARD"
+    },
+    {
+     "code": "MIRROR",
+     "label": "MIRROR"
+    },
+    {
+     "code": "SINGLE_PULL_LIGHT_SWITCH",
+     "label": "SINGLE /PULL LIGHT SWITCH"
+    },
+    {
+     "code": "SMOKE_ALARM",
+     "label": "SMOKE ALARM"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  },
+  {
+   "code": "SEPARATE_WC",
+   "label": "SEPARATE WC",
+   "items": [
+    {
+     "code": "WALLS",
+     "label": "WALLS"
+    },
+    {
+     "code": "CEILING",
+     "label": "CEILING"
+    },
+    {
+     "code": "DOOR",
+     "label": "DOOR"
+    },
+    {
+     "code": "HANDLE",
+     "label": "HANDLE"
+    },
+    {
+     "code": "DOOR_FRAME",
+     "label": "DOOR FRAME"
+    },
+    {
+     "code": "WOODWORK",
+     "label": "WOODWORK"
+    },
+    {
+     "code": "WINDOW",
+     "label": "WINDOW"
+    },
+    {
+     "code": "WINDOW_HANDLE",
+     "label": "WINDOW HANDLE"
+    },
+    {
+     "code": "RADIATOR",
+     "label": "RADIATOR"
+    },
+    {
+     "code": "WATER_CLOSET",
+     "label": "WATER CLOSET"
+    },
+    {
+     "code": "SINK",
+     "label": "SINK"
+    },
+    {
+     "code": "BATHROOM_FITTINGS",
+     "label": "BATHROOM FITTINGS"
+    },
+    {
+     "code": "LIGHT_FITTING",
+     "label": "LIGHT FITTING"
+    }
+   ]
+  }
+ ],
+ "miscellaneous_blank_rows": 13,
+ "additional_notes": {
+  "columns": [
+   "DATE",
+   "NOTE",
+   "ADDED BY",
+   "SIGNED"
+  ],
+  "blank_rows": 21
+ },
+ "table_count": 35
+}
