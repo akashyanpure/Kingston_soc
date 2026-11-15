@@ -4,9 +4,9 @@
  * to the landlord/agent. Failures retry with exponential backoff (failJob) up to 5 attempts.
  * Can be moved to a separate process later: call processNextJob(ctx) in a loop.
  */
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
-import { claimNextJob, completeJob, failJob, reports, requeueStuckJobs } from '@soc/db';
+import { claimNextJob, completeJob, failJob, reports, requeueStuckJobs, signatures } from '@soc/db';
 import { renderReportHtml, reportPhotos } from '@soc/report';
 import { photoKey, reportPdfKey } from '../adapters/storage.js';
 import type { AppContext } from '../context.js';
@@ -23,6 +23,16 @@ export async function snapshotHtml(ctx: AppContext, snapshot: StoredSnapshot): P
     if (!bytes) throw new Error(`photo ${p.id} binary missing from storage`);
     data.set(p.id, `data:image/jpeg;base64,${bytes.toString('base64')}`);
   }
+  const sigImages = new Map<string, string>();
+  const withImage = snapshot.bundle.signatures.filter((s) => s.method === 'on_device' && s.hasImage).map((s) => s.id);
+  if (withImage.length) {
+    const rows = await ctx.db.select({ id: signatures.id, key: signatures.imageStorageKey }).from(signatures).where(inArray(signatures.id, withImage));
+    for (const r of rows) {
+      const png = r.key ? await ctx.storage.get(r.key) : null;
+      if (!png) throw new Error(`signature ${r.id} image missing from storage`);
+      sigImages.set(r.id, `data:image/png;base64,${png.toString('base64')}`);
+    }
+  }
   return renderReportHtml({
     bundle: snapshot.bundle,
     form: snapshot.form,
@@ -30,7 +40,9 @@ export async function snapshotHtml(ctx: AppContext, snapshot: StoredSnapshot): P
     officerName: snapshot.officerName,
     mode: 'final',
     sha256: snapshot.contentSha256,
+    issuedAt: snapshot.issuedAt ?? null,
     photoSrc: (id) => data.get(id) ?? '',
+    signatureSrc: (id) => sigImages.get(id) ?? null,
   });
 }
 

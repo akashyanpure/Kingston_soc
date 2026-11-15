@@ -34,18 +34,7 @@ export async function getUserName(db: Db, userId: string): Promise<string> {
   return row?.name ?? '';
 }
 
-/** Stable JSON (sorted keys) so the snapshot hash does not depend on key order. */
-export function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  const obj = value as Record<string, unknown>;
-  return `{${Object.keys(obj)
-    .filter((k) => obj[k] !== undefined)
-    .sort()
-    .map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`)
-    .join(',')}}`;
-}
-
+/** SHA-256 of binary data (PDFs). Content hashes use visitContentHash from @soc/shared. */
 export const sha256Hex = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex');
 
 /** Calendar year in Europe/London (report numbers are per year). */

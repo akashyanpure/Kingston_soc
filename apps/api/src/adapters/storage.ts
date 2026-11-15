@@ -83,4 +83,4 @@ export class MemoryStorage implements Storage {
 
 export const photoKey = (visitId: string, photoId: string) => `photos/${visitId}/${photoId}.jpg`;
 export const reportPdfKey = (visitId: string, reportNumber: string) => `reports/${visitId}/${reportNumber}.pdf`;
-export const signatureKey = (reportId: string, signatureId: string) => `signatures/${reportId}/${signatureId}.png`;
+export const signatureKey = (visitId: string, signatureId: string) => `signatures/${visitId}/${signatureId}.png`;

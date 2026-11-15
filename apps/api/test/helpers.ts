@@ -5,7 +5,8 @@ import { v7 as uuidv7 } from 'uuid';
 import { hash } from '@node-rs/argon2';
 import { createTestDb, DEV_PASSWORD_DEFAULT, properties, SEED_OFFICER_EMAIL, users } from '@soc/db';
 import type { TestDbHandle } from '@soc/db';
-import type { Mutation, VisitBundle } from '@soc/shared';
+import { visitContentHash } from '@soc/shared';
+import type { Mutation, SignatureRole, VisitBundle } from '@soc/shared';
 import { buildApp } from '../src/app.js';
 import type { App } from '../src/app.js';
 import { MemoryMailer } from '../src/adapters/mail.js';
@@ -105,7 +106,7 @@ export async function uploadPhoto(t: TestApp, cookie: string, id: string, bytes:
 }
 
 /** Fill a visit so it can be issued: general fields, wide photo per present room, all items graded (first one F with photo). */
-export async function completeVisit(t: TestApp, cookie: string, b: VisitBundle, jpeg: () => { bytes: Buffer; sha256: string } = fakeJpeg) {
+export async function completeVisit(t: TestApp, cookie: string, b: VisitBundle, jpeg: () => { bytes: Buffer; sha256: string } = fakeJpeg, opts: { sign?: boolean } = {}) {
   const vid = b.visit.id;
   const g = (code: string) => b.general.find((x) => x.fieldCode === code)!;
   const muts: Mutation[] = [
@@ -132,4 +133,32 @@ export async function completeVisit(t: TestApp, cookie: string, b: VisitBundle, 
     const res = await uploadPhoto(t, cookie, u.id, u.bytes, u.sha256);
     if (res.statusCode !== 200) throw new Error(`upload failed ${res.body}`);
   }
+  if (opts.sign !== false) {
+    const s = await sign(t, cookie, vid);
+    if (s.result.status !== 'applied') throw new Error(`sign failed: ${JSON.stringify(s.result)}`);
+  }
+}
+
+/** 1×1 PNG as a data URL (finger-signature stand-in). */
+export const SIGNATURE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+export async function getBundle(t: TestApp, cookie: string, visitId: string): Promise<VisitBundle> {
+  const res = await t.app.inject({ method: 'GET', url: `/api/visits/${visitId}`, headers: { cookie } });
+  if (res.statusCode !== 200) throw new Error(`get bundle failed ${res.statusCode} ${res.body}`);
+  return res.json() as VisitBundle;
+}
+
+/** E-sign the current draft on the "device": contentSha256 = visitContentHash(current bundle). */
+export async function sign(
+  t: TestApp, cookie: string, visitId: string,
+  opts: { id?: string; role?: SignatureRole; name?: string; image?: string | null } = {},
+) {
+  const b = await getBundle(t, cookie, visitId);
+  const id = opts.id ?? uuidv7();
+  const data: Record<string, unknown> = {
+    visitId, role: opts.role ?? 'officer', name: opts.name ?? 'P. Dekaate', method: 'on_device', signedAt: tick(), contentSha256: visitContentHash(b),
+  };
+  if (opts.image !== null) data.imageDataUrl = opts.image ?? SIGNATURE_PNG;
+  const r = await push(t, cookie, [mutation('signature', id, data)]);
+  return { id, result: r.results[0]! };
 }

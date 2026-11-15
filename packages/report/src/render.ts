@@ -30,16 +30,17 @@ export interface ReportInput {
   signatureSrc?: (signatureId: string) => string | null;
   /** SHA-256 printed on the declaration page in final mode (hash of the issued record snapshot). */
   sha256?: string | null;
+  /** Issue time printed on the declaration page in final mode (the snapshot is taken before the report row exists). */
+  issuedAt?: string | null;
 }
 
 const VISIT_TYPE_LABEL: Record<string, string> = { check_in: 'CHECK-IN', check_out: 'CHECK-OUT', interim: 'INTERIM' };
 const METHOD_LABEL: Record<string, string> = {
-  on_device: 'Signed on device',
-  link: 'Signed via link',
-  wet: 'Wet signature',
-  officer_only: 'Recorded by officer',
+  on_device: 'Signed electronically on device',
+  link: 'Signed electronically via link',
 };
-const UNSIGNED_HINT: Record<SignatureRole, string> = {
+/** Template wording ('signed on behalf of the landlord:') kept as the label of each e-signature block. */
+const SIGN_LABEL: Record<SignatureRole, string> = {
   landlord_agent: 'signed on behalf of the landlord:',
   officer: 'signed on behalf of the Council:',
   tenant_check_in: 'signed by the tenant at check-in:',
@@ -248,26 +249,37 @@ export function renderReportHtml(input: ReportInput): string {
 </section>`;
 
   // ── Declaration + signatures ─────────────────────────────────────────────
-  const sigFor = (role: SignatureRole): Signature | undefined => bundle.signatures.find((s) => s.role === role);
+  // Decision 2026-11-15: e-signatures only, captured on the device before issue and printed here.
+  // Post-issue 'link' signatures are recorded against the PDF hash and are not part of the document.
+  const sigFor = (role: SignatureRole): Signature | undefined =>
+    bundle.signatures.find((s) => s.role === role && s.method === 'on_device');
   const sigBlock = (role: SignatureRole, roleLabel: string) => {
     const s = sigFor(role);
-    const img = s && input.signatureSrc ? safeSrc(input.signatureSrc(s.id)) : '';
-    return `<div class="sig">
+    const img = s && s.hasImage && input.signatureSrc ? safeSrc(input.signatureSrc(s.id)) : '';
+    const box = s
+      ? img ? `<img src="${img}" alt="Signature of ${esc(s.name)}">` : `<span class="sig-name">${esc(s.name)}</span>`
+      : '<span class="hint">Not signed</span>';
+    return `<div class="sig${s ? ' signed' : ' unsigned'}">
       <div class="k">${esc(roleLabel)}</div>
-      <div class="sig-box">${img ? `<img src="${img}" alt="Signature of ${esc(s!.name)}">` : s ? `<span class="sig-name">${esc(s.name)}</span>` : `<span class="hint">${esc(UNSIGNED_HINT[role])}</span>`}</div>
-      <div class="sig-meta">${s
-        ? `PRINT NAME: <b>${esc(s.name)}</b><br>${esc(METHOD_LABEL[s.method] ?? s.method)} · ${esc(dateTime(s.signedAt))}`
-        : 'PRINT NAME: ______________________<br>date: ______________'}</div>
+      <div class="sig-label">${esc(SIGN_LABEL[role])}</div>
+      <div class="sig-box">${box}</div>
+      <div class="sig-meta">PRINT NAME: <b>${s ? esc(s.name) : '—'}</b><br>date: ${s
+        ? `${esc(dateTime(s.signedAt))} · ${esc(METHOD_LABEL[s.method] ?? s.method)}`
+        : '—'}</div>
     </div>`;
   };
-  const sha = final && input.sha256 ? input.sha256 : null;
+  const sha = input.sha256 ?? null;
   const declaration = `
 <section class="block declaration">
   <h2>${esc(form.boilerplate.declarationTitle)}</h2>
   ${form.boilerplate.declaration.map((p) => `<p>${esc(withScheme(p, schemeName))}</p>`).join('\n  ')}
-  <div class="sigs">${form.signatureRoles.map((r) => sigBlock(r.role, r.label)).join('')}</div>
+  <div class="sigs">${form.signatureRoles
+    // Only the tenant block that can be signed on this visit type (same rule as SIGNATURE_ROLE_INVALID).
+    .filter((r) => !(r.role === 'tenant_check_in' && visit.visitType !== 'check_in') && !(r.role === 'tenant_check_out' && visit.visitType !== 'check_out'))
+    .map((r) => sigBlock(r.role, r.label)).join('')}</div>
   <div class="integrity">
-    <div class="small muted">${final ? `Issued ${esc(dateTime(bundle.report?.issuedAt ?? visit.completedAt))}. This record is immutable once issued; corrections are made only by additional notes agreed by both parties.` : 'Draft — this document has not been issued and is not a record of the Council.'}</div>
+    <div class="small muted">Signatures are captured electronically on the officer's device at the end of the inspection. Each signature is bound to the content SHA-256 of the record shown opposite; any change to the record after signing requires a new signature.
+      ${final ? `<br>Issued ${esc(dateTime(input.issuedAt ?? bundle.report?.issuedAt ?? visit.completedAt))}. This record is immutable once issued; corrections are made only by additional notes agreed by both parties.` : '<br>Draft — this document has not been issued and is not a record of the Council.'}</div>
     ${sha ? `<div class="hash mono">SHA-256<br>${esc(groupHash(sha))}</div>` : ''}
   </div>
 </section>`;

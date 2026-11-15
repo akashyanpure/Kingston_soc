@@ -10,7 +10,7 @@ export function syncRoutes(app: FastifyInstance, ctx: AppContext): void {
   app.post('/sync/push', async (req): Promise<PushResponse> => {
     const user = requireUser(req);
     const body = parse(PushRequest, req.body);
-    const results = await pushMutations(ctx.db, user, body);
+    const results = await pushMutations(ctx.db, ctx.storage, user, body);
     return { results, serverTime: new Date().toISOString() };
   });
 }

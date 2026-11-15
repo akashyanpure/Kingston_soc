@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DEV_PASSWORD_DEFAULT, SEED_OFFICER_EMAIL, auditEvents, itemRecords, visits } from '@soc/db';
 import { processNextJob } from '../src/pdf/worker.js';
 import {
-  createVisit, fakeJpeg, login, mutation, photoRow, push, setup, tick, uploadPhoto, userId,
+  SIGNATURE_PNG, completeVisit, createVisit, fakeJpeg, getBundle, login, mutation, photoRow, push, setup, sign, tick, uploadPhoto, userId,
 } from './helpers.js';
 import type { TestApp } from './helpers.js';
 
@@ -267,9 +267,13 @@ describe('issue', () => {
 
     // Photos not uploaded yet → server-side blocker.
     const pending = await t.app.inject({ method: 'GET', url: `/api/visits/${vid}/blockers`, headers: { cookie } });
-    expect(pending.json().blockers.map((x: { code: string }) => x.code)).toEqual(['PHOTO_NOT_UPLOADED', 'PHOTO_NOT_UPLOADED']);
+    expect(pending.json().blockers.map((x: { code: string }) => x.code)).toEqual(['OFFICER_SIGNATURE_MISSING', 'PHOTO_NOT_UPLOADED', 'PHOTO_NOT_UPLOADED']);
     expect((await uploadPhoto(t, cookie, wideId, wide.bytes, wide.sha256)).statusCode).toBe(200);
     expect((await uploadPhoto(t, cookie, defectId, defect.bytes, defect.sha256)).statusCode).toBe(200);
+    // Content complete -> the officer must e-sign before issue.
+    const unsigned = await t.app.inject({ method: 'GET', url: `/api/visits/${vid}/blockers`, headers: { cookie } });
+    expect(unsigned.json().blockers.map((x: { code: string }) => x.code)).toEqual(['OFFICER_SIGNATURE_MISSING']);
+    expect((await sign(t, cookie, vid)).result.status).toBe('applied');
     const clear = await t.app.inject({ method: 'GET', url: `/api/visits/${vid}/blockers`, headers: { cookie } });
     expect(clear.json().blockers).toEqual([]);
 
@@ -309,15 +313,20 @@ describe('issue', () => {
     expect(note.statusCode).toBe(201);
     const sig = await t.app.inject({
       method: 'POST', url: `/api/reports/${report.id}/signatures`, headers: { cookie },
-      payload: { role: 'officer', name: 'P. Dekaate', method: 'officer_only' },
+      payload: { role: 'landlord_agent', name: 'A. Pemberton', method: 'link' },
     });
     expect(sig.statusCode).toBe(201);
     expect(sig.json().signature.reportSha256).toBe(meta.report.sha256);
     const dup = await t.app.inject({
       method: 'POST', url: `/api/reports/${report.id}/signatures`, headers: { cookie },
-      payload: { role: 'officer', name: 'P. Dekaate', method: 'officer_only' },
+      payload: { role: 'landlord_agent', name: 'A. Pemberton', method: 'link' },
     });
     expect(dup.statusCode).toBe(409);
+    const onDevice = await t.app.inject({
+      method: 'POST', url: `/api/reports/${report.id}/signatures`, headers: { cookie },
+      payload: { role: 'tenant_check_in', name: 'T. Tenant', method: 'on_device' },
+    });
+    expect(onDevice.statusCode).toBe(400);
 
     const [v] = await t.handle.db.select().from(visits).where(eq(visits.id, vid));
     expect(v!.reportNumber).toBe(report.reportNumber);
@@ -357,5 +366,119 @@ describe('reference, properties, users', () => {
     expect(u.statusCode).toBe(201);
     const login2 = await t.app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'new.officer@kingston.test', password: 'a-long-password-123' } });
     expect(login2.statusCode).toBe(200);
+  });
+});
+
+describe('e-signatures (on device, before issue)', () => {
+  it('stores the PNG, reports hasImage, and serves it to the owner/manager only', async () => {
+    const cookie = await login(t, 'officer');
+    const b = await createVisit(t, cookie);
+    const { id, result } = await sign(t, cookie, b.visit.id);
+    expect(result.status).toBe('applied');
+    const bundle = await getBundle(t, cookie, b.visit.id);
+    const s = bundle.signatures.find((x) => x.id === id)!;
+    expect(s).toMatchObject({ role: 'officer', method: 'on_device', hasImage: true, reportId: null });
+    expect(JSON.stringify(bundle)).not.toContain('data:image/png'); // write-only
+    expect(t.storage.files.has(`signatures/${b.visit.id}/${id}.png`)).toBe(true);
+
+    const img = await t.app.inject({ method: 'GET', url: `/api/signatures/${id}/image`, headers: { cookie } });
+    expect(img.statusCode).toBe(200);
+    expect(img.headers['content-type']).toBe('image/png');
+    expect(img.rawPayload.subarray(1, 4).toString()).toBe('PNG');
+    const stranger = await login(t, 'officer2');
+    expect((await t.app.inject({ method: 'GET', url: `/api/signatures/${id}/image`, headers: { cookie: stranger } })).statusCode).toBe(403);
+    expect((await t.app.inject({ method: 'GET', url: `/api/signatures/${id}/image` })).statusCode).toBe(401);
+    const manager = await login(t, 'manager');
+    expect((await t.app.inject({ method: 'GET', url: `/api/signatures/${id}/image`, headers: { cookie: manager } })).statusCode).toBe(200);
+  });
+
+  it('rejects bad signature pushes', async () => {
+    const cookie = await login(t, 'officer');
+    const b = await createVisit(t, cookie);
+    const vid = b.visit.id;
+    const base = { visitId: vid, role: 'landlord_agent', name: 'A. Pemberton', method: 'on_device', signedAt: tick(), contentSha256: 'a'.repeat(64) };
+    const r = await push(t, cookie, [
+      mutation('signature', uuidv7(), base), // no image
+      mutation('signature', uuidv7(), { ...base, imageDataUrl: 'data:image/png;base64,' + Buffer.from('not a png').toString('base64') }),
+      mutation('signature', uuidv7(), { ...base, method: 'link', imageDataUrl: SIGNATURE_PNG }),
+      mutation('signature', uuidv7(), { ...base, contentSha256: null, imageDataUrl: SIGNATURE_PNG }),
+      mutation('signature', uuidv7(), { ...base, imageDataUrl: 'data:image/png;base64,' + Buffer.alloc(250 * 1024).toString('base64') }),
+      mutation('signature', uuidv7(), { ...base, reportId: uuidv7(), imageDataUrl: SIGNATURE_PNG }),
+    ]);
+    expect(r.results.map((x) => x.status)).toEqual(['rejected', 'rejected', 'rejected', 'rejected', 'rejected', 'rejected']);
+    const other = await login(t, 'officer2');
+    const forbidden = await push(t, other, [mutation('signature', uuidv7(), { ...base, imageDataUrl: SIGNATURE_PNG })]);
+    expect(forbidden.results[0]!.status).toBe('rejected');
+  });
+
+  it('lets a device move a visit from scheduled to in_progress and completed', async () => {
+    const cookie = await login(t, 'officer');
+    const b = await createVisit(t, cookie);
+    expect(b.visit.status).toBe('scheduled');
+    const r = await push(t, cookie, [
+      mutation('visit', b.visit.id, { status: 'in_progress', startedAt: tick() }),
+      mutation('visit', b.visit.id, { status: 'completed', completedAt: tick() }),
+    ]);
+    expect(r.results.map((x) => x.status)).toEqual(['applied', 'applied']);
+    expect((await getBundle(t, cookie, b.visit.id)).visit.status).toBe('completed');
+  });
+
+  it('blocks issue when the officer has not signed or a signature is stale; re-signing fixes it', async () => {
+    const cookie = await login(t, 'officer');
+    const b = await createVisit(t, cookie);
+    await completeVisit(t, cookie, b, fakeJpeg, { sign: false });
+    const vid = b.visit.id;
+    const issue = () => t.app.inject({ method: 'POST', url: `/api/visits/${vid}/issue`, headers: { cookie } });
+
+    const missing = await issue();
+    expect(missing.statusCode).toBe(409);
+    expect(missing.json().blockers.map((x: { code: string }) => x.code)).toEqual(['OFFICER_SIGNATURE_MISSING']);
+
+    const officerSig = await sign(t, cookie, vid);
+    const landlordSig = await sign(t, cookie, vid, { role: 'landlord_agent', name: 'A. <Pemberton>' });
+    // Content changes after signing -> both signatures are stale.
+    const item = b.items.find((i) => i.roomInstanceId !== null)!;
+    await push(t, cookie, [mutation('item_record', item.id, { visitId: vid, description: 'Changed after signing' })]);
+    const stale = await issue();
+    expect(stale.statusCode).toBe(409);
+    const blockers = stale.json().blockers as { code: string; signatureId: string }[];
+    expect(blockers.map((x) => x.code)).toEqual(['SIGNATURE_STALE', 'SIGNATURE_STALE']);
+    expect(new Set(blockers.map((x) => x.signatureId))).toEqual(new Set([officerSig.id, landlordSig.id]));
+
+    // Re-sign = update the same rows with the new content hash (and a new image).
+    expect((await sign(t, cookie, vid, { id: officerSig.id })).result.status).toBe('applied');
+    expect((await sign(t, cookie, vid, { id: landlordSig.id, role: 'landlord_agent', name: 'A. <Pemberton>' })).result.status).toBe('applied');
+
+    const ok = await issue();
+    expect(ok.statusCode).toBe(201);
+    const report = ok.json().report;
+    const bundle = await getBundle(t, cookie, vid);
+    expect(bundle.signatures).toHaveLength(2);
+    expect(bundle.signatures.every((s) => s.reportId === report.id)).toBe(true);
+
+    // Preview (issued -> final from snapshot) shows the signers and links their images.
+    const preview = await t.app.inject({ method: 'GET', url: `/api/visits/${vid}/preview`, headers: { cookie } });
+    expect(preview.body).toContain('PRINT NAME: <b>P. Dekaate</b>');
+    expect(preview.body).toContain('A. &lt;Pemberton&gt;');
+    expect(preview.body).toContain(`/api/signatures/${officerSig.id}/image`);
+    expect(preview.body).toContain('Signed electronically on device');
+    expect(preview.body).toContain('Not signed'); // tenant roles
+
+    // PDF HTML: signature images inlined from storage, content hash printed.
+    expect(await processNextJob(t.app.ctx)).toBe(true);
+    const html = t.pdf.rendered.at(-1)!;
+    expect(html).toContain('PRINT NAME: <b>P. Dekaate</b>');
+    expect(html).toContain('data:image/png;base64,iVBORw0KGgo');
+    const { visitContentHash } = await import('@soc/shared');
+    const hash = visitContentHash(bundle);
+    expect(html).toContain(hash.match(/.{1,4}/g)!.join(' '));
+
+    // After issue: signature pushes (re-sign or new) are rejected.
+    const late = await push(t, cookie, [
+      mutation('signature', officerSig.id, { visitId: vid, name: 'Changed', contentSha256: hash, imageDataUrl: SIGNATURE_PNG }),
+      mutation('signature', uuidv7(), { visitId: vid, role: 'tenant_check_in', name: 'T', method: 'on_device', signedAt: tick(), contentSha256: hash, imageDataUrl: SIGNATURE_PNG }),
+    ]);
+    expect(late.results.map((x) => x.status)).toEqual(['rejected', 'rejected']);
+    expect(late.results.every((x) => /VISIT_ISSUED/.test(x.error ?? ''))).toBe(true);
   });
 });

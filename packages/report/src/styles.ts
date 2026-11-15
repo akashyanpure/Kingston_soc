@@ -117,6 +117,7 @@ thead { display: table-header-group; }
 .sig-box img { max-height: 18mm; max-width: 100%; }
 .sig-name { font-family: var(--f-head); font-weight: 600; font-size: 13pt; color: var(--deeper); }
 .sig-box .hint { font-size: 8pt; color: var(--muted); font-style: italic; }
+.sig-label { font-size: 8pt; color: var(--muted); font-style: italic; margin-top: 1mm; }
 .sig-meta { font-size: 7.5pt; color: var(--muted); margin-top: 1.5mm; line-height: 1.5; }
 .integrity { margin-top: 8mm; border-top: 1px solid rgba(29,31,32,.2); padding-top: 4mm; display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; break-inside: avoid; }
 .hash { font-size: 7pt; color: var(--muted); text-align: right; line-height: 1.6; max-width: 60mm; }

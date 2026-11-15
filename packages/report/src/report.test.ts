@@ -77,6 +77,20 @@ describe('renderReportHtml', () => {
     expect(html).not.toContain('javascript:');
   });
 
+  it('shows only the tenant signature block that fits the visit type', () => {
+    const checkIn = renderReportHtml(base());
+    expect(checkIn).toContain('Tenant (at check-in)');
+    expect(checkIn).not.toContain('Tenant (at check-out)');
+    const b = sampleBundle(form);
+    b.visit.visitType = 'check_out';
+    const checkOut = renderReportHtml(base({ bundle: b }));
+    expect(checkOut).toContain('Tenant (at check-out)');
+    expect(checkOut).not.toContain('Tenant (at check-in)');
+    const interim = sampleBundle(form);
+    interim.visit.visitType = 'interim';
+    expect(renderReportHtml(base({ bundle: interim }))).not.toMatch(/Tenant \(at check-(in|out)\)/);
+  });
+
   it('puts the scheme name in the cover and declaration', () => {
     const html = renderReportHtml(base({ schemeName: 'Tenant Finder' }));
     expect(html).toContain('Kingston Council&#39;s Tenant Finder');
@@ -84,17 +98,29 @@ describe('renderReportHtml', () => {
     expect(html).not.toContain('{scheme}');
   });
 
-  it('final mode: no watermark, prints report number, hash and signatures', () => {
+  it('final mode: no watermark, prints report number, content hash and the e-signatures', async () => {
     const b = sampleBundle(form);
     b.visit.reportNumber = 'SOC-2026-0417';
     b.visit.status = 'issued';
-    b.signatures = [{ id: b.visit.id, reportId: b.visit.id, role: 'officer', name: 'P. Dekaate', method: 'on_device', signedAt: '2026-09-15T10:44:00+01:00', reportSha256: null }];
-    const html = renderReportHtml(base({ bundle: b, mode: 'final', sha256: 'ab'.repeat(32), signatureSrc: () => null }));
+    const sig = b.signatures[0]!;
+    b.signatures.push({ ...sig, id: '0190a000-0000-7000-8000-000000000091', role: 'landlord_agent', name: '<b>A. Pemberton</b>', hasImage: false });
+    b.signatures.push({ ...sig, id: '0190a000-0000-7000-8000-000000000092', role: 'tenant_check_in', name: 'Link Person', method: 'link' });
+    const html = renderReportHtml(base({
+      bundle: b, mode: 'final', sha256: 'ab'.repeat(32), issuedAt: '2026-09-15T10:20:00+01:00',
+      signatureSrc: (id) => (id === sig.id ? 'data:image/png;base64,iVBORw0KGgo=' : null),
+    }));
     expect(html).not.toContain('class="watermark"');
     expect(html).toContain('SOC-2026-0417');
     expect(html).toContain('SHA-256');
     expect(html).toContain('abab abab');
-    expect(html).toContain('Signed on device · 15/09/2026 10:44');
+    expect(html).toContain('<img src="data:image/png;base64,iVBORw0KGgo=" alt="Signature of P. Dekaate">');
+    expect(html).toContain('PRINT NAME: <b>P. Dekaate</b>');
+    expect(html).toContain('15/09/2026 10:14 · Signed electronically on device');
     expect(html).toContain('signed on behalf of the landlord:');
+    expect(html).toContain('&lt;b&gt;A. Pemberton&lt;/b&gt;');
+    expect(html).not.toContain('Link Person'); // post-issue link signatures are not printed
+    expect(html).toContain('Not signed');
+    expect(html).not.toContain('______');
+    expect(html).toContain('Issued 15/09/2026 10:20');
   });
 });

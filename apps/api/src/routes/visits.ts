@@ -7,7 +7,7 @@ import {
 } from '@soc/db';
 import type { Db } from '@soc/db';
 import { renderReportHtml } from '@soc/report';
-import { CreateVisitRequest, Visit, VisitListQuery, zId, zTime } from '@soc/shared';
+import { CreateVisitRequest, Visit, VisitListQuery, visitContentHash, zId, zTime } from '@soc/shared';
 import { assertCanAccessVisit, isManager, requireRole, requireUser } from '../auth/index.js';
 import type { AppContext } from '../context.js';
 import { badRequest, conflict, notFound, parse } from '../errors.js';
@@ -120,11 +120,12 @@ export function visitRoutes(app: FastifyInstance, ctx: AppContext): void {
     const { id } = parse(IdParams, req.params);
     const visit = await getVisitForUser(ctx.db, user, id);
     const photoSrc = (photoId: string) => `/api/photos/${photoId}/file`;
+    const signatureSrc = (signatureId: string) => `/api/signatures/${signatureId}/image`;
     let html: string;
     const [report] = visit.status === 'issued' ? await ctx.db.select().from(reports).where(eq(reports.visitId, id)).limit(1) : [];
     if (report) {
       const snap = report.snapshot as StoredSnapshot;
-      html = renderReportHtml({ ...snap, mode: 'final', sha256: snap.contentSha256, photoSrc });
+      html = renderReportHtml({ ...snap, mode: 'final', sha256: snap.contentSha256, issuedAt: snap.issuedAt ?? null, photoSrc, signatureSrc });
     } else {
       const bundle = (await loadVisitBundle(ctx.db, id))!;
       html = renderReportHtml({
@@ -133,7 +134,10 @@ export function visitRoutes(app: FastifyInstance, ctx: AppContext): void {
         schemeName: await getSchemeName(ctx.db, visit.schemeCode),
         officerName: await getUserName(ctx.db, visit.officerId),
         mode: 'draft',
+        // The draft shows the content hash the signers are agreeing to.
+        sha256: visitContentHash(bundle),
         photoSrc,
+        signatureSrc,
       });
     }
     return reply

@@ -19,7 +19,7 @@ import { PdfWorker } from './pdf/worker.js';
 import { photoRoutes } from './routes/photos.js';
 import { propertyRoutes } from './routes/properties.js';
 import { referenceRoutes } from './routes/reference.js';
-import { reportRoutes } from './routes/reports.js';
+import { reportRoutes, signatureImageRoutes } from './routes/reports.js';
 import { syncRoutes } from './routes/sync.js';
 import { userRoutes } from './routes/users.js';
 import { visitRoutes } from './routes/visits.js';
@@ -65,6 +65,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<App> {
       syncRoutes(api, ctx);
       photoRoutes(api, ctx);
       reportRoutes(api, ctx);
+      signatureImageRoutes(api, ctx);
       propertyRoutes(api, ctx);
       userRoutes(api, ctx);
     },

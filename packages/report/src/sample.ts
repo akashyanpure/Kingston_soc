@@ -2,7 +2,7 @@
  * Deterministic sample visit (based on the reference example SOC-2026-0417) for tests,
  * previews and UI development. Not real data.
  */
-import { buildFormDefinition } from '@soc/shared';
+import { buildFormDefinition, visitContentHash } from '@soc/shared';
 import type { FormDefinition, ItemRecord, Photo, RoomInstance, VisitBundle } from '@soc/shared';
 
 const uid = (n: number) => `0190a000-0000-7000-8000-${String(n).padStart(12, '0')}`;
@@ -53,7 +53,7 @@ export function sampleBundle(form: FormDefinition = buildFormDefinition()): Visi
   photos.push(photo(600, 51, { roomInstanceId: kitchen.id, itemRecordId: walls.id }));
   photos.push(photo(601, 55, { itemRecordId: misc.id }));
 
-  return {
+  const bundle: VisitBundle = {
     visit: {
       id: visitId, propertyId: uid(2), tenancyId: uid(3), schemeCode: 'PLS', visitType: 'check_in', formVersionId: uid(4),
       officerId: uid(900), status: 'in_progress', scheduledAt: '2026-09-15T09:30:00+01:00', startedAt: '2026-09-15T09:34:00+01:00',
@@ -89,4 +89,10 @@ export function sampleBundle(form: FormDefinition = buildFormDefinition()): Visi
     report: null,
     signatures: [],
   };
+  // The officer e-signs the draft on the device (decision 2026-11-15); bound to the content hash.
+  bundle.signatures = [{
+    id: uid(90), visitId, reportId: null, role: 'officer', name: 'P. Dekaate', method: 'on_device',
+    signedAt: '2026-09-15T10:14:00+01:00', contentSha256: visitContentHash(bundle), reportSha256: null, hasImage: true, ...meta,
+  }];
+  return bundle;
 }

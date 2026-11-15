@@ -16,16 +16,17 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
   additionalNotes, appliances, auditEvents, ensureRoomItems, isImmutableError, itemRecords, meterReadings, pgErrorCode,
-  photos, processedMutations, roomInstances, serializeRow, visitGeneral, visits,
+  photos, processedMutations, roomInstances, serializeRow, signatures, visitGeneral, visits,
 } from '@soc/db';
 import type { Db } from '@soc/db';
 import {
-  AdditionalNote, Appliance, ItemRecord, MeterReading, Photo, RoomInstance, Visit, VisitGeneral,
+  AdditionalNote, Appliance, ItemRecord, MeterReading, Photo, RoomInstance, Signature, SignatureImageDataUrl, Visit, VisitGeneral, sha256Hex,
 } from '@soc/shared';
 import type { Mutation, MutationResult, PushRequest, SyncEntity, User } from '@soc/shared';
 import type { z } from 'zod';
 import { isManager } from '../auth/index.js';
-import { photoKey } from '../adapters/storage.js';
+import { photoKey, signatureKey } from '../adapters/storage.js';
+import type { Storage } from '../adapters/storage.js';
 
 interface EntitySpec {
   table: PgTable & { id: AnyPgColumn; updatedAt: AnyPgColumn; deletedAt: AnyPgColumn };
@@ -59,10 +60,31 @@ const SPECS: Record<SyncEntity, EntitySpec> = {
     refs: { roomInstanceId: 'room_instance', itemRecordId: 'item_record' },
   },
   additional_note: { table: additionalNotes as never, schema: AdditionalNote, serverOnly: BASE_SERVER_ONLY, createOnly: ['visitId'], refs: {} },
+  // On-device e-signature, captured at review before issue. Re-signing (same id) may update
+  // name/signedAt/contentSha256 and the image. The PNG arrives as the write-only `imageDataUrl`.
+  signature: {
+    table: signatures as never, schema: Signature,
+    serverOnly: [...BASE_SERVER_ONLY, 'reportId', 'reportSha256', 'hasImage'],
+    createOnly: ['visitId', 'role', 'method'],
+    refs: {},
+  },
 };
 
+/** Max decoded size of a signature PNG. */
+export const SIGNATURE_MAX_BYTES = 300 * 1024;
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+function decodeSignaturePng(v: unknown): Buffer {
+  const r = SignatureImageDataUrl.safeParse(v);
+  if (!r.success) throw new Reject('INVALID: imageDataUrl must be a data:image/png;base64 URL.');
+  const png = Buffer.from(r.data.slice('data:image/png;base64,'.length), 'base64');
+  if (png.length > SIGNATURE_MAX_BYTES) throw new Reject(`INVALID: signature image is larger than ${SIGNATURE_MAX_BYTES / 1024} KB.`);
+  if (png.length < PNG_MAGIC.length || !png.subarray(0, 8).equals(PNG_MAGIC)) throw new Reject('INVALID: signature image is not a PNG.');
+  return png;
+}
+
 const REF_TABLES = { room_instance: roomInstances, item_record: itemRecords, photo: photos } as const;
-const TIMESTAMP_FIELDS = new Set(['scheduledAt', 'startedAt', 'completedAt', 'capturedAt', 'deletedAt', 'updatedAt']);
+const TIMESTAMP_FIELDS = new Set(['scheduledAt', 'startedAt', 'completedAt', 'capturedAt', 'deletedAt', 'updatedAt', 'signedAt']);
 
 class Reject extends Error {}
 class MissingRef extends Error {}
@@ -76,22 +98,23 @@ function apiShape(spec: EntitySpec, row: Record<string, unknown>): Record<string
   const s = serializeRow(row) as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(spec.schema.shape)) out[k] = s[k] ?? null;
+  if ('hasImage' in spec.schema.shape) out.hasImage = s.imageStorageKey != null;
   return out;
 }
 
-export async function pushMutations(db: Db, user: User, req: PushRequest): Promise<MutationResult[]> {
+export async function pushMutations(db: Db, storage: Storage, user: User, req: PushRequest): Promise<MutationResult[]> {
   const results = new Map<string, MutationResult>();
   const deferred: Mutation[] = [];
   for (const m of req.mutations) {
-    const r = await applyOne(db, user, req.deviceId, m, false);
+    const r = await applyOne(db, storage, user, req.deviceId, m, false);
     if (r === 'deferred') deferred.push(m);
     else results.set(m.mutationId, r);
   }
-  for (const m of deferred) results.set(m.mutationId, (await applyOne(db, user, req.deviceId, m, true)) as MutationResult);
+  for (const m of deferred) results.set(m.mutationId, (await applyOne(db, storage, user, req.deviceId, m, true)) as MutationResult);
   return req.mutations.map((m) => results.get(m.mutationId)!);
 }
 
-async function applyOne(db: Db, user: User, deviceId: string, m: Mutation, final: boolean): Promise<MutationResult | 'deferred'> {
+async function applyOne(db: Db, storage: Storage, user: User, deviceId: string, m: Mutation, final: boolean): Promise<MutationResult | 'deferred'> {
   try {
     return await db.transaction(async (txRaw) => {
       const tx = txRaw as unknown as Db;
@@ -101,7 +124,7 @@ async function applyOne(db: Db, user: User, deviceId: string, m: Mutation, final
         .onConflictDoNothing()
         .returning({ id: processedMutations.mutationId });
       if (!claimed) return { mutationId: m.mutationId, status: 'duplicate' as const };
-      await applyMutation(tx, user, deviceId, m);
+      await applyMutation(tx, storage, user, deviceId, m);
       return { mutationId: m.mutationId, status: 'applied' as const };
     });
   } catch (err) {
@@ -116,7 +139,7 @@ async function applyOne(db: Db, user: User, deviceId: string, m: Mutation, final
   }
 }
 
-async function applyMutation(tx: Db, user: User, deviceId: string, m: Mutation): Promise<void> {
+async function applyMutation(tx: Db, storage: Storage, user: User, deviceId: string, m: Mutation): Promise<void> {
   const spec = SPECS[m.entity];
   const t = spec.table as unknown as PgTable & { id: AnyPgColumn };
   const [existingRaw] = await tx.select().from(t).where(eq(t.id, m.id)).limit(1).for('update');
@@ -154,6 +177,7 @@ async function applyMutation(tx: Db, user: User, deviceId: string, m: Mutation):
     changes = {};
     for (const [k, v] of Object.entries(m.data)) {
       if (k === 'visitId' && m.entity !== 'visit') continue; // handled above
+      if (k === 'imageDataUrl' && m.entity === 'signature') continue; // write-only, handled below
       if (k === 'deletedAt' && m.entity === 'photo') { changes[k] = v; continue; }
       if (!allowed.has(k)) throw new Reject(`INVALID: unknown field '${k}' for ${m.entity}.`);
       if (spec.serverOnly.includes(k)) {
@@ -164,6 +188,18 @@ async function applyMutation(tx: Db, user: User, deviceId: string, m: Mutation):
       changes[k] = v;
     }
     if (m.entity === 'visit' && changes.status === 'issued') throw new Reject('INVALID: visits are issued with POST /api/visits/:id/issue.');
+  }
+
+  // ── Signature image (write-only); takes part in LWW as the pseudo-field 'image' ──
+  let png: Buffer | null = null;
+  if (m.entity === 'signature' && m.op === 'upsert') {
+    if (changes.method !== undefined && changes.method !== 'on_device') throw new Reject("INVALID: devices may only record method 'on_device' signatures.");
+    if (m.data.imageDataUrl !== undefined) {
+      png = decodeSignaturePng(m.data.imageDataUrl);
+      changes.image = sha256Hex(png);
+    } else if (!existing) {
+      throw new Reject('INVALID: imageDataUrl is required for a new signature.');
+    }
   }
 
   // ── Same-visit references (deferred once if the row is not pushed yet) ──
@@ -198,6 +234,11 @@ async function applyMutation(tx: Db, user: User, deviceId: string, m: Mutation):
   merged.updatedAt = prevUpdated && prevUpdated > clientAt ? prevUpdated.toISOString() : clientAt.toISOString();
   if (!existing && m.entity === 'photo') Object.assign(merged, { ref: null, uploaded: false, deletedAt: merged.deletedAt ?? null });
   if (!existing && m.entity === 'room_instance' && merged.present === null) merged.present = true;
+  if (m.entity === 'signature') {
+    delete merged.image;
+    merged.hasImage = (existing ? existing.imageStorageKey != null : false) || applied.image !== undefined;
+    if (merged.method === 'on_device' && !merged.contentSha256) throw new Reject('INVALID: contentSha256 is required for an on-device signature.');
+  }
   const { deletedAt: _deleted, ...validatable } = merged;
   const check = spec.schema.safeParse(m.entity === 'photo' ? merged : validatable);
   if (!check.success) {
@@ -207,7 +248,13 @@ async function applyMutation(tx: Db, user: User, deviceId: string, m: Mutation):
 
   // ── Write ──
   const dbValues: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(applied)) dbValues[k] = toDb(k, v);
+  for (const [k, v] of Object.entries(applied)) if (k !== 'image') dbValues[k] = toDb(k, v);
+  let imageKey: string | null = null;
+  if (png && applied.image !== undefined) {
+    imageKey = signatureKey(visitId, m.id);
+    await storage.put(imageKey, png); // committed with the row below; a rolled-back put is just overwritten on retry
+    dbValues.imageStorageKey = imageKey;
+  }
   dbValues.updatedAt = new Date(merged.updatedAt as string);
   dbValues.updatedBy = user.id;
   if (existing) {
@@ -216,6 +263,12 @@ async function applyMutation(tx: Db, user: User, deviceId: string, m: Mutation):
     const row: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(merged)) row[k] = toDb(k, v);
     if (m.entity === 'photo') row.storageKey = photoKey(visitId, m.id);
+    if (m.entity === 'signature') {
+      delete row.hasImage;
+      row.imageStorageKey = imageKey;
+      row.reportId = null;
+      row.reportSha256 = null;
+    }
     await tx.insert(t).values(row as never);
   }
 
