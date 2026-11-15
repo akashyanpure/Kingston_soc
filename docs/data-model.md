@@ -52,7 +52,9 @@ Trigger on all device-writable visit tables: reject INSERT/UPDATE/DELETE when th
 | Table | Columns | Notes |
 |---|---|---|
 | `processed_mutations` | mutation_id uuid PK, device_id text, user_id, received_at, status text | idempotency |
-| `audit_events` | id bigint identity PK, entity text, entity_id uuid, field text, old_value jsonb, new_value jsonb, actor uuid, device_id text null, at timestamptz | index(entity, entity_id); index(at) — candidate for yearly partitioning |
+| `audit_events` | id bigint identity PK, entity text, entity_id uuid, field text, old_value jsonb, new_value jsonb, actor uuid, device_id text null, `client_updated_at timestamptz null` (device clock of the write), at timestamptz (server clock) | index(entity_id, field, client_updated_at desc) — used for per-field last-write-wins; index(at) — candidate for yearly partitioning |
+
+**Per-field last-write-wins:** for each field in a push mutation, the server applies it unless an audit_event exists for (entity_id, field) with a newer `client_updated_at`; every applied field writes an audit_event.
 | `sessions` | id text PK (random 32 bytes, base64url), user_id, created_at, expires_at, last_seen_at, user_agent | index(user_id); sessions last 14 days, sliding (offline days) |
 | `jobs` | id bigint identity, kind text ('render_pdf'), payload jsonb, status ('queued','running','done','failed'), attempts int, run_after timestamptz, last_error text, created_at | Postgres queue: `SELECT … FOR UPDATE SKIP LOCKED` |
 

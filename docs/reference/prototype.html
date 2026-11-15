@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="bb24cdc1-8eec-4b8f-9ed9-8aeb5f3a677f"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* Industry — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8395fcaa-306d-4414-87c9-688b863a367e") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("322e0c2e-5cca-4f37-a468-c135a1253c15") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("417ce7ee-a8ba-4d81-b253-b809e6a27d71") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b5b15682-5d27-477f-abe6-627928fea63d") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b2605257-6eb2-4d82-b8ef-492af4ee907d") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b2fedd5b-8f84-4402-9d1c-c23adb49fb31") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("aaf52d9d-ceea-4d03-9da0-cfdf7d3a862e") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a2ced8c0-3afb-484c-9187-35ffc1c3fcd5") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("ac2b5c02-6dbe-49bc-b533-a37d29ce095d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c9a5dde5-7c81-44b1-9a98-636862832fbc") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("6b56d279-faf3-40a9-bdcc-70c7d3f66d0a") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("140c8612-eba8-41aa-99d1-365db112e4a4") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("adfa0046-aeb4-417a-855b-9ce2e73d78d9") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("5bdc4c2f-db61-4424-a09d-84501c153bbf") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a2fd9880-5dce-48ed-835e-b485f1aeb9a6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+:root {
+  --color-bg: #f2f2f3;
+  --color-surface: #e9e9ea;
+  --color-text: #1d1f20;
+  --color-accent: #5980a6;
+  --color-accent-2: #728fab;
+  --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
+
+  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
+     same step of any role matches the others in visual value. */
+  --color-neutral-100: #f5f5f8;
+  --color-neutral-200: #e7e7ea;
+  --color-neutral-300: #d4d4d7;
+  --color-neutral-400: #b7b7ba;
+  --color-neutral-500: #98989b;
+  --color-neutral-600: #7a7a7d;
+  --color-neutral-700: #5d5d60;
+  --color-neutral-800: #424244;
+  --color-neutral-900: #2b2b2d;
+
+  --color-accent-100: #eef6ff;
+  --color-accent-200: #d6ebff;
+  --color-accent-300: #b5d9fd;
+  --color-accent-400: #94bce3;
+  --color-accent-500: #749dc4;
+  --color-accent-600: #597ea3;
+  --color-accent-700: #416180;
+  --color-accent-800: #2c455d;
+  --color-accent-900: #1d2d3d;
+
+  --color-accent-2-100: #eef6ff;
+  --color-accent-2-200: #d6ebff;
+  --color-accent-2-300: #bdd8f2;
+  --color-accent-2-400: #9ebbd8;
+  --color-accent-2-500: #7e9cb8;
+  --color-accent-2-600: #627d98;
+  --color-accent-2-700: #486077;
+  --color-accent-2-800: #314457;
+  --color-accent-2-900: #1f2d3a;
+
+  --font-heading: "Barlow Condensed", system-ui, sans-serif;
+  --font-heading-weight: 600;
+  --font-body: "Barlow", system-ui, sans-serif;
+
+  --space-1: 3.4px;
+  --space-2: 6.8px;
+  --space-3: 10.2px;
+  --space-4: 13.6px;
+  --space-6: 20.4px;
+  --space-8: 27.2px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 7px;
+
+  /* Elevation — derived from the ground: soft ink-tinted shadows on a
+     light theme, a hairline edge + ambient darkness on a dark one. */
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2b2b2d 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2b2b2d 22%, transparent);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+
+.blueprint {
+  position: relative;
+  border: 1px solid var(--color-divider);
+  border-radius: 0;
+}
+/* The overlay image treatments (halftone, duotone) clip their overlay
+   (overflow:hidden); a blueprint wrapper draws its registration marks
+   outside the box, so when both classes share a wrapper the frame must
+   win. */
+.blueprint.halftone, .blueprint.plate, .blueprint.duotone { overflow: visible; }
+.blueprint > .corner {
+  position: absolute; width: 11px; height: 11px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.blueprint > .corner::before, .blueprint > .corner::after {
+  content: ""; position: absolute; background: currentColor;
+}
+.blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.blueprint > .corner::after  { top: 5px; left: 0; width: 100%; height: 1px; }
+.blueprint > .corner.tl { top: -6px; left: -6px; }
+.blueprint > .corner.tr { top: -6px; right: -6px; }
+.blueprint > .corner.bl { bottom: -6px; left: -6px; }
+.blueprint > .corner.br { bottom: -6px; right: -6px; }
+
+.duotone{position:relative;overflow:hidden}
+.duotone::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:var(--color-accent);mix-blend-mode:color}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Components — built with the tokens above. Plain CSS
+   on plain HTML: no JavaScript, no build step. Each class is documented in
+   readme.md and demonstrated in foundations/ and components/.
+   ══════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; }
+h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+img { display: block; max-width: 100%; }
+figure { margin: 0; }
+figcaption {
+  font-size: 11px; margin-top: var(--space-1);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
+/* — rules — */
+.hr {
+  height: 1px; border: 0; margin: var(--space-4) 0;
+  background: var(--color-divider);
+}
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 14px; line-height: 1.2; color: var(--color-text); /* matches the .input's 14px —
+     the pair sits side by side in sign-up rows */
+  background: transparent; border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: var(--radius-md);
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--color-accent); color: var(--color-bg); }
+.btn-primary:hover { background: var(--color-accent-600); }
+.btn-primary:active { background: var(--color-accent-700); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-block { width: 100%; margin-top: var(--space-2); }
+
+/* — forms — */
+.field > label {
+  display: block; font-size: 12px; margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.input {
+  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
+  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+textarea.input { min-height: 90px; resize: vertical; }
+.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.radio input, .seg-opt input {
+  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+}
+.radio .dot {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--color-divider);
+}
+.radio:hover .dot { border-color: var(--color-accent); }
+.radio input:checked + .dot {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 4px var(--color-bg);
+}
+.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.seg {
+  display: inline-flex; overflow: hidden;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer;
+}
+.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+.seg-opt:has(input:checked) { background: var(--color-accent); color: var(--color-bg); }
+.seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+/* — cards — */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+}
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 17px; line-height: 1.2;
+}
+.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
+.card-meta {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+.elev-sm { box-shadow: var(--shadow-sm); }
+.elev-md { box-shadow: var(--shadow-md); }
+.elev-lg { box-shadow: var(--shadow-lg); }
+
+/* — tags — */
+.tag {
+  display: inline-flex; align-items: center; font-size: 11px;
+  letter-spacing: 0.02em; padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+}
+.tag-accent { background: var(--color-accent-100); color: var(--color-accent-800); }
+.tag-accent-2 { background: var(--color-accent-2-100); color: var(--color-accent-2-800); }
+.tag-neutral { background: var(--color-neutral-100); color: var(--color-neutral-800); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* — navigation — */
+.nav {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: none;
+}
+.nav-brand {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 18px; margin-right: auto;
+}
+.nav a { color: inherit; text-decoration: none; font-size: 14px; }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
+
+/* — tables — */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: var(--space-2); border-bottom: 1px solid var(--color-divider);
+}
+.table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+
+/* — dialog — */
+.dialog-backdrop {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+.dialog {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background: var(--color-surface); box-shadow: var(--shadow-lg);
+}
+.dialog-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 20px;
+}
+.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* — blueprint frame: components are wireframe objects (see .blueprint
+     and .corner above) — square, transparent, hairline-bordered — */
+.card, .btn, .input, .tag, .seg, .dialog { border-radius: 0; }
+.card, .dialog { background: transparent; border: 1px solid var(--color-divider); }
+.btn { border: 1px solid var(--color-divider); }
+.btn-primary { border-color: var(--color-accent); }
+.btn-ghost { border-color: transparent; }
+
+</style>
+<style>/* Kingston retone — overrides the Industry accent ramp with a civic blue-teal.
+   Industry's grammar is untouched: same lightness steps, same single-accent
+   mono scheme, same spacing, type and blueprint framing. Swap the nine accent
+   steps below for the exact hex values from the council's brand guidelines and
+   every page retones at once. */
+:root {
+  --color-accent: #17708c;
+  --color-accent-2: #3d8399;
+
+  --color-accent-100: #eaf5f8;
+  --color-accent-200: #cfe8ef;
+  --color-accent-300: #a8d6e2;
+  --color-accent-400: #6fb4c9;
+  --color-accent-500: #3b93ae;
+  --color-accent-600: #14657f;
+  --color-accent-700: #0f5568;
+  --color-accent-800: #0b3d4c;
+  --color-accent-900: #072932;
+
+  --color-accent-2-100: #eaf5f8;
+  --color-accent-2-200: #cfe8ef;
+  --color-accent-2-300: #b0d6e0;
+  --color-accent-2-400: #7fb3c2;
+  --color-accent-2-500: #55919f;
+  --color-accent-2-600: #3a7281;
+  --color-accent-2-700: #2a5b68;
+  --color-accent-2-800: #1c404b;
+  --color-accent-2-900: #112b33;
+}
+</style>
+<script src="8fbf65a9-09e0-4026-ba82-32a85125746d"></script>
+<script src="2fa8e062-d969-4ec0-89ff-c366b15e3acd"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>/* vietnamese */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8395fcaa-306d-4414-87c9-688b863a367e") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("322e0c2e-5cca-4f37-a468-c135a1253c15") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("417ce7ee-a8ba-4d81-b253-b809e6a27d71") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b5b15682-5d27-477f-abe6-627928fea63d") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b2605257-6eb2-4d82-b8ef-492af4ee907d") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b2fedd5b-8f84-4402-9d1c-c23adb49fb31") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("aaf52d9d-ceea-4d03-9da0-cfdf7d3a862e") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a2ced8c0-3afb-484c-9187-35ffc1c3fcd5") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("ac2b5c02-6dbe-49bc-b533-a37d29ce095d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c9a5dde5-7c81-44b1-9a98-636862832fbc") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("6b56d279-faf3-40a9-bdcc-70c7d3f66d0a") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("140c8612-eba8-41aa-99d1-365db112e4a4") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("adfa0046-aeb4-417a-855b-9ce2e73d78d9") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("5bdc4c2f-db61-4424-a09d-84501c153bbf") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a2fd9880-5dce-48ed-835e-b485f1aeb9a6") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+  body { margin:0; background:#f2f2f3; color:#1d1f20; font-family:"Barlow",system-ui,sans-serif; }
+  * { box-sizing:border-box; }
+  input, textarea, button, select { font-family:inherit; }
+  a { color:#0f5568; text-underline-offset:3px; }
+  a:hover { color:#0b3d4c; }
+  :focus-visible { outline:2px solid #17708c; outline-offset:2px; }
+  .stripe { background-image:repeating-linear-gradient(135deg,#d9dade 0 6px,#ececed 6px 12px); }
+</style>
+</helmet>
+
+
+<div style="padding:28px 24px 64px;max-width:1240px;margin:0 auto">
+  <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:22px">
+    <div>
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:10px">
+        <image-slot id="kingston-logo" style="width:152px;height:74px" shape="rect" fit="contain" placeholder="Logo"></image-slot>
+        <div style="width:1px;height:46px;background:rgba(29,31,32,0.2)"></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px;line-height:1.12;letter-spacing:0.04em">ROYAL BOROUGH OF<br>KINGSTON UPON THAMES</div>
+      </div>
+      <div style="font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60"><a href="Start Here.dc.html" style="color:#0f5568">Start here</a> · Housing · Private Sector Schemes</div>
+      <h1 style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:40px;line-height:1.08;letter-spacing:-0.015em;margin:4px 0 4px">Inventory &amp; Schedule of Condition — working prototype</h1>
+      <div style="font-size:14px;color:#5d5d60;max-width:62ch">Phone-first, works offline, report generates itself. Tap through the officer flow; switch to the manager and landlord views with the tabs.</div>
+    </div>
+    <div style="display:flex;gap:0;border:1px solid rgba(29,31,32,0.16)">
+      <button sc-camel-on-click="{{ setPhone }}" style="{{ tabPhone }}" style-hover="background:rgba(29,31,32,0.07)">Officer · phone</button>
+      <button sc-camel-on-click="{{ setDesk }}" style="{{ tabDesk }}" style-hover="background:rgba(29,31,32,0.07)">Manager · desktop</button>
+      <button sc-camel-on-click="{{ setLand }}" style="{{ tabLand }}" style-hover="background:rgba(29,31,32,0.07)">Landlord · signing link</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+    <div style="position:relative;flex:0 0 auto">
+      <i style="position:absolute;top:-7px;left:-7px;width:11px;height:11px;color:#8b8c8d" style-before="content:'';position:absolute;left:5px;top:0;width:1px;height:100%;background:currentColor" style-after="content:'';position:absolute;top:5px;left:0;width:100%;height:1px;background:currentColor"></i>
+      <i style="position:absolute;top:-7px;right:-7px;width:11px;height:11px;color:#8b8c8d" style-before="content:'';position:absolute;left:5px;top:0;width:1px;height:100%;background:currentColor" style-after="content:'';position:absolute;top:5px;left:0;width:100%;height:1px;background:currentColor"></i>
+      <i style="position:absolute;bottom:-7px;left:-7px;width:11px;height:11px;color:#8b8c8d" style-before="content:'';position:absolute;left:5px;top:0;width:1px;height:100%;background:currentColor" style-after="content:'';position:absolute;top:5px;left:0;width:100%;height:1px;background:currentColor"></i>
+      <i style="position:absolute;bottom:-7px;right:-7px;width:11px;height:11px;color:#8b8c8d" style-before="content:'';position:absolute;left:5px;top:0;width:1px;height:100%;background:currentColor" style-after="content:'';position:absolute;top:5px;left:0;width:100%;height:1px;background:currentColor"></i>
+
+      <div style="width:392px;height:812px;border:1px solid rgba(29,31,32,0.16);background:#f8f8f9;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;font-size:11px;letter-spacing:0.06em;color:#5d5d60;border-bottom:1px solid rgba(29,31,32,0.08)">
+          <span>10:42</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;background:#17708c;display:block"></span>OFFLINE · 3 QUEUED</span>
+        </div>
+
+        <div style="flex:1;overflow:auto;padding:0 0 4px">
+
+          <sc-if value="{{ isVisits }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 14px 20px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+              <div>
+                <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60">Tue 15 Sep · J. Patel</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:27px;line-height:1.1">My visits</div>
+              </div>
+              <div style="text-align:right;font-size:11px;color:#5d5d60">4 today<br>26 this week<br><button sc-camel-on-click="{{ resetDemo }}" style="background:transparent;border:0;padding:2px 0 0;font-size:11px;color:#0f5568;cursor:pointer;text-decoration:underline">Reset</button></div>
+            </div>
+
+            <div style="border:1px solid rgba(29,31,32,0.16);background:#eaf5f8;padding:9px 11px;font-size:12px;margin-bottom:14px;display:flex;gap:9px;align-items:flex-start">
+              <span style="width:7px;height:7px;background:#17708c;display:block;margin-top:5px;flex:0 0 auto"></span>
+              <span>No signal at this property. Everything is saved on the phone and uploads itself when you're back in range.</span>
+            </div>
+
+            <sc-for list="{{ visits }}" as="v" hint-placeholder-count="4">
+              <button sc-camel-on-click="{{ v.open }}" class="blueprint" style="display:block;width:100%;text-align:left;background:transparent;border:1px solid rgba(29,31,32,0.16);padding:12px;margin-bottom:16px;cursor:pointer" style-hover="background:rgba(29,31,32,0.04)">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+                  <div>
+                    <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5d5d60">{{ v.scheme }} · {{ v.type }}</div>
+                    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:19px;line-height:1.15;margin-top:2px">{{ v.address }}</div>
+                    <div style="font-size:12px;color:#5d5d60;margin-top:2px">{{ v.time }} · {{ v.form }}</div>
+                  </div>
+                  <span style="{{ v.pill }}">{{ v.status }}</span>
+                </div>
+                <div style="height:4px;background:#e0e1e3;margin-top:10px"><span style="{{ v.bar }}"></span></div>
+              </button>
+            </sc-for>
+
+            <button sc-camel-on-click="{{ goNew }}" style="width:100%;background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:11px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:0.04em;cursor:pointer;margin-top:4px" style-hover="background:#14657f">+ START A NEW VISIT</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isNew }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 14px 20px">
+            <button sc-camel-on-click="{{ goVisits }}" style="background:transparent;border:0;color:#0f5568;font-size:12px;padding:0 0 10px;cursor:pointer">← My visits</button>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:27px;line-height:1.1;margin-bottom:14px">New visit</div>
+
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:5px">Scheme</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+              <sc-for list="{{ schemes }}" as="s" hint-placeholder-count="4">
+                <button sc-camel-on-click="{{ s.pick }}" style="{{ s.style }}" style-hover="background:rgba(29,31,32,0.05)">{{ s.label }}</button>
+              </sc-for>
+            </div>
+
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:5px">Visit type</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+              <sc-for list="{{ visitTypes }}" as="t" hint-placeholder-count="2">
+                <button sc-camel-on-click="{{ t.pick }}" style="{{ t.style }}" style-hover="background:rgba(29,31,32,0.05)">{{ t.label }}</button>
+              </sc-for>
+            </div>
+
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:5px">Property</div>
+            <input value="{{ addr }}" sc-camel-on-change="{{ setAddr }}" placeholder="Search address or UPRN" style="width:100%;border:1px solid rgba(29,31,32,0.16);background:#fff;padding:9px 10px;font-size:14px;margin-bottom:8px">
+            <div style="border:1px solid rgba(29,31,32,0.16);padding:9px 10px;font-size:12px;color:#5d5d60;margin-bottom:14px">
+              Last SOC: <strong style="color:#1d1f20">12 Mar 2025</strong> · Landlord: Pemberton Lettings · Gas cert expires 04 Nov 2026
+            </div>
+
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:5px">Property type — builds the room list</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px">
+              <sc-for list="{{ propTypes }}" as="p" hint-placeholder-count="4">
+                <button sc-camel-on-click="{{ p.pick }}" style="{{ p.style }}" style-hover="background:rgba(29,31,32,0.05)">{{ p.label }}</button>
+              </sc-for>
+            </div>
+
+            <div style="border:1px solid rgba(29,31,32,0.16);background:#e9e9ea;padding:11px;font-size:12px;margin-bottom:14px">
+              Will build <strong>{{ roomCount }} rooms</strong> / <strong>{{ itemCount }} items</strong> using the <strong>{{ formName }}</strong>.
+            </div>
+
+            <button sc-camel-on-click="{{ goRooms }}" style="width:100%;background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:11px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:0.04em;cursor:pointer" style-hover="background:#14657f">BUILD THE INVENTORY →</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isRooms }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 14px 20px">
+            <button sc-camel-on-click="{{ goVisits }}" style="background:transparent;border:0;color:#0f5568;font-size:12px;padding:0 0 10px;cursor:pointer">← My visits</button>
+            <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5d5d60">{{ scheme }} · {{ visitType }} · {{ propType }}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:24px;line-height:1.12;margin:2px 0 10px">{{ addr }}</div>
+
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#5d5d60;margin-bottom:5px"><span>{{ doneText }}</span><span>{{ pctText }}</span></div>
+            <div style="height:6px;background:#e0e1e3;margin-bottom:12px"><span style="{{ totalBar }}"></span></div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+              <button sc-camel-on-click="{{ markAllGood }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:9px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">MARK ALL AS GOOD</button>
+              <button sc-camel-on-click="{{ goCompare }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:9px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">COMPARE TO CHECK-IN</button>
+            </div>
+
+            <sc-for list="{{ rooms }}" as="r" hint-placeholder-count="8">
+              <button sc-camel-on-click="{{ r.open }}" style="display:block;width:100%;text-align:left;background:transparent;border:1px solid rgba(29,31,32,0.16);border-left:3px solid #17708c;padding:10px 11px;margin-bottom:7px;cursor:pointer" style-hover="background:rgba(29,31,32,0.04)">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                  <span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:17px">{{ r.name }}</span>
+                  <span style="font-size:11px;color:#5d5d60">{{ r.count }}</span>
+                </div>
+                <div style="height:3px;background:#e0e1e3;margin-top:8px"><span style="{{ r.bar }}"></span></div>
+                <sc-if value="{{ r.hasFlags }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:11px;color:#0f5568;margin-top:6px">{{ r.flagText }}</div>
+                </sc-if>
+              </button>
+            </sc-for>
+
+            <button sc-camel-on-click="{{ goSign }}" style="width:100%;background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:11px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:0.04em;cursor:pointer;margin-top:6px" style-hover="background:#14657f">REVIEW &amp; SIGN OFF →</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isRoom }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 14px 20px">
+            <button sc-camel-on-click="{{ goRooms }}" style="background:transparent;border:0;color:#0f5568;font-size:12px;padding:0 0 8px;cursor:pointer">← All rooms</button>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:12px">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:25px;line-height:1.1">{{ room }}</div>
+              <div style="font-size:11px;color:#5d5d60;text-align:right">{{ roomProgress }}</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+              <button sc-camel-on-click="{{ markRoomGood }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.04em;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">ALL GOOD IN HERE</button>
+              <button sc-camel-on-click="{{ dictate }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.04em;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">{{ dictateLabel }}</button>
+            </div>
+
+            <sc-for list="{{ items }}" as="it" hint-placeholder-count="10">
+              <div class="blueprint" style="border:1px solid rgba(29,31,32,0.16);padding:10px;margin-bottom:16px;background:#fff">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">
+                  <span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px;letter-spacing:0.02em">{{ it.name }}</span>
+                  <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#5d5d60">
+                    <button sc-camel-on-click="{{ it.dec }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:1" style-hover="background:rgba(29,31,32,0.07)">−</button>
+                    <span style="min-width:12px;text-align:center;color:#1d1f20">{{ it.qty }}</span>
+                    <button sc-camel-on-click="{{ it.inc }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:1" style-hover="background:rgba(29,31,32,0.07)">+</button>
+                  </span>
+                </div>
+
+                <div style="display:flex;gap:5px;margin-bottom:7px">
+                  <sc-for list="{{ it.grades }}" as="g" hint-placeholder-count="4">
+                    <button sc-camel-on-click="{{ g.pick }}" style="{{ g.style }}">{{ g.label }}</button>
+                  </sc-for>
+                </div>
+
+                <input value="{{ it.desc }}" sc-camel-on-change="{{ it.onDesc }}" placeholder="Description" style="width:100%;border:1px solid rgba(29,31,32,0.16);background:#f8f8f9;padding:7px 8px;font-size:13px;margin-bottom:6px">
+                <div style="display:flex;flex-wrap:wrap;gap:5px">
+                  <sc-for list="{{ it.lib }}" as="l" hint-placeholder-count="3">
+                    <button sc-camel-on-click="{{ l.pick }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:3px 7px;font-size:11px;cursor:pointer;color:#0f5568" style-hover="background:rgba(89,128,166,0.1)">{{ l.label }}</button>
+                  </sc-for>
+                </div>
+
+                <sc-if value="{{ it.isDefect }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:8px;border-top:1px solid rgba(29,31,32,0.1);padding-top:8px">
+                    <textarea value="{{ it.comment }}" sc-camel-on-change="{{ it.onComment }}" placeholder="What's wrong, and where" style="width:100%;border:1px solid rgba(29,31,32,0.16);background:#f8f8f9;padding:7px 8px;font-size:13px;min-height:52px;resize:vertical"></textarea>
+                    <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
+                      <button sc-camel-on-click="{{ it.photo }}" style="{{ it.photoStyle }}">{{ it.photoLabel }}</button>
+                      <span style="font-size:11px;color:#5d5d60">{{ it.photoNote }}</span>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+              <button sc-camel-on-click="{{ duplicateRoom }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:9px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">DUPLICATE ROOM</button>
+              <button sc-camel-on-click="{{ goRooms }}" style="background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:9px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:#14657f">NEXT ROOM →</button>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isPhoto }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 14px 20px">
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60">Evidence photo</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:23px;line-height:1.1;margin:2px 0 12px">{{ photoTitle }}</div>
+            <div class="stripe" style="position:relative;width:100%;height:330px;border:1px solid rgba(29,31,32,0.16);display:flex;align-items:center;justify-content:center">
+              <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#5d5d60;background:#f2f2f3;padding:4px 8px">camera viewfinder</span>
+              <div style="position:absolute;left:0;right:0;bottom:0;background:rgba(7,41,50,0.9);color:#f2f2f3;padding:7px 9px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.45">
+                14 ACRE ROAD, KT2 6EU<br>15/09/2026 10:42 · 51.4103°N 0.3003°W<br>{{ photoStamp }} · Officer J. PATEL · SOC-2026-0417
+              </div>
+            </div>
+            <div style="font-size:12px;color:#5d5d60;margin:10px 0 12px">Stamp is burned into the image and written to the file's metadata, so the photo can't drift away from the report or the date.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <button sc-camel-on-click="{{ cancelPhoto }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">RETAKE</button>
+              <button sc-camel-on-click="{{ usePhoto }}" style="background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#14657f">ATTACH TO ITEM</button>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isCompare }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 14px 20px">
+            <button sc-camel-on-click="{{ goRooms }}" style="background:transparent;border:0;color:#0f5568;font-size:12px;padding:0 0 8px;cursor:pointer">← All rooms</button>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:25px;line-height:1.1">Check-out vs check-in</div>
+            <div style="font-size:12px;color:#5d5d60;margin:2px 0 12px">Check-in 12 Mar 2025 · 31 months tenancy · fair wear allowance applied</div>
+            <sc-for list="{{ compareRows }}" as="c" hint-placeholder-count="5">
+              <div style="border:1px solid rgba(29,31,32,0.16);background:#fff;padding:10px;margin-bottom:8px">
+                <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5d5d60">{{ c.room }}</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;margin-bottom:8px">{{ c.item }}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div>
+                    <div style="font-size:10px;color:#5d5d60;margin-bottom:4px">CHECK-IN</div>
+                    <div class="stripe" style="height:66px;border:1px solid rgba(29,31,32,0.16);margin-bottom:5px"></div>
+                    <span style="{{ c.wasStyle }}">{{ c.was }}</span>
+                  </div>
+                  <div>
+                    <div style="font-size:10px;color:#5d5d60;margin-bottom:4px">TODAY</div>
+                    <div class="stripe" style="height:66px;border:1px solid rgba(29,31,32,0.16);margin-bottom:5px"></div>
+                    <span style="{{ c.nowStyle }}">{{ c.now }}</span>
+                  </div>
+                </div>
+                <div style="font-size:12px;margin-top:8px">{{ c.note }}</div>
+                <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+                  <span style="font-size:11px;color:#5d5d60">Dilapidation</span>
+                  <span style="{{ c.chargeStyle }}">{{ c.charge }}</span>
+                </div>
+              </div>
+            </sc-for>
+            <div style="border:1px solid rgba(29,31,32,0.16);background:#e9e9ea;padding:11px;font-size:12px">Only the items that moved a grade are listed. Everything unchanged stays out of the dispute.</div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isSign }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 14px 20px">
+            <button sc-camel-on-click="{{ goRooms }}" style="background:transparent;border:0;color:#0f5568;font-size:12px;padding:0 0 8px;cursor:pointer">← All rooms</button>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:25px;line-height:1.1;margin-bottom:12px">Review &amp; sign off</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+              <sc-for list="{{ summary }}" as="s" hint-placeholder-count="4">
+                <div class="blueprint" style="border:1px solid rgba(29,31,32,0.16);background:#fff;padding:9px 10px">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:23px;line-height:1">{{ s.value }}</div>
+                  <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60;margin-top:2px">{{ s.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ hasBlockers }}" hint-placeholder-val="{{ true }}">
+              <div style="border:1px solid #0f5568;background:#eaf5f8;padding:10px;font-size:12px;margin-bottom:14px">
+                <strong>{{ blockerText }}</strong><br>The report can't be issued until every Fair, Poor or Unacceptable item carries a photo.
+              </div>
+            </sc-if>
+
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:5px">Meter readings</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+              <input placeholder="Electricity" style="border:1px solid rgba(29,31,32,0.16);background:#fff;padding:8px;font-size:13px">
+              <input placeholder="Gas" style="border:1px solid rgba(29,31,32,0.16);background:#fff;padding:8px;font-size:13px">
+              <input placeholder="Water" style="border:1px solid rgba(29,31,32,0.16);background:#fff;padding:8px;font-size:13px">
+              <input placeholder="Stopcock location" style="border:1px solid rgba(29,31,32,0.16);background:#fff;padding:8px;font-size:13px">
+            </div>
+
+            <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:5px">Signatures</div>
+            <sc-for list="{{ signModes }}" as="m" hint-placeholder-count="3">
+              <button sc-camel-on-click="{{ m.pick }}" style="{{ m.style }}" style-hover="background:rgba(29,31,32,0.04)">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:15px">{{ m.label }}</span>
+                <span style="display:block;font-size:11px;color:#5d5d60;margin-top:2px">{{ m.note }}</span>
+              </button>
+            </sc-for>
+
+            <sc-if value="{{ signOnSite }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:10px">
+                <div style="font-size:11px;color:#5d5d60;margin-bottom:5px">Landlord / agent signs here</div>
+                <button sc-camel-on-click="{{ doSign }}" style="{{ padStyle }}">{{ padLabel }}</button>
+              </div>
+            </sc-if>
+
+            <button sc-camel-on-click="{{ generate }}" disabled="{{ generateDisabled }}" aria-disabled="{{ generateDisabled }}" style="{{ generateStyle }}">{{ generateLabel }}</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:22px 14px 20px">
+            <div style="width:34px;height:34px;border:1px solid #17708c;background:#17708c;color:#f2f2f3;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:20px;margin-bottom:12px">✓</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:27px;line-height:1.1">SOC-2026-0417 issued</div>
+            <div style="font-size:13px;color:#5d5d60;margin:4px 0 16px">14 Acre Road, KT2 6EU · 41 pages · 38 photos · 4 min 12 s on site after the walk-round.</div>
+            <sc-for list="{{ doneSteps }}" as="d" hint-placeholder-count="4">
+              <div style="display:flex;gap:9px;border:1px solid rgba(29,31,32,0.16);background:#fff;padding:10px;margin-bottom:7px">
+                <span style="color:#17708c;font-size:13px">■</span>
+                <span style="font-size:12px">{{ d.text }}</span>
+              </div>
+            </sc-for>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+              <button sc-camel-on-click="{{ goVisits }}" style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">BACK TO VISITS</button>
+              <a href="SOC Report Preview.dc.html" target="_blank" style="text-align:center;background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:10px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;text-decoration:none">OPEN THE PDF</a>
+            </div>
+          </div>
+          </sc-if>
+
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(29,31,32,0.16);background:#e9e9ea">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+            <button sc-camel-on-click="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 320px;min-width:280px">
+      <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:6px">What this screen is doing</div>
+      <h3 style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:24px;line-height:1.12;margin:0 0 8px">{{ noteTitle }}</h3>
+      <p style="font-size:14px;color:#3f4143;margin:0 0 14px;text-wrap:pretty">{{ noteBody }}</p>
+      <div style="border-top:1px solid rgba(29,31,32,0.16);padding-top:12px">
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:8px">Time saved here</div>
+        <sc-for list="{{ noteGains }}" as="g" hint-placeholder-count="3">
+          <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(29,31,32,0.08);font-size:13px">
+            <span style="color:#0f5568;flex:0 0 auto">■</span><span>{{ g.text }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:18px;border:1px solid rgba(29,31,32,0.16);padding:12px;font-size:12px;color:#3f4143">
+        Jump to: <a href="#" sc-camel-on-click="{{ jumpRoom }}">kitchen items</a> · <a href="#" sc-camel-on-click="{{ jumpCompare }}">check-out compare</a> · <a href="#" sc-camel-on-click="{{ jumpSign }}">sign-off</a>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isDesk }}" hint-placeholder-val="{{ false }}">
+  <div style="border:1px solid rgba(29,31,32,0.16);background:#f8f8f9;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(29,31,32,0.16);padding-bottom:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60">Private Sector Schemes · week 38</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:30px;line-height:1.1">Inventory operations</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">EXPORT CSV</button>
+        <button style="background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:#14657f">ASSIGN VISITS</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px;margin-bottom:22px">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+        <div class="blueprint" style="border:1px solid rgba(29,31,32,0.16);padding:12px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:34px;line-height:1">{{ k.value }}</div>
+          <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60;margin-top:3px">{{ k.label }}</div>
+          <div style="font-size:11px;color:#0f5568;margin-top:4px">{{ k.delta }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:18px">
+      <div>
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:8px">Visits this week</div>
+        <sc-raw-table style="width:100%;border-collapse:collapse;font-size:13px">
+          <sc-raw-thead>
+            <sc-raw-tr style="border-bottom:1px solid rgba(29,31,32,0.3)">
+              <sc-raw-th style="text-align:left;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60">Property</sc-raw-th>
+              <sc-raw-th style="text-align:left;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60">Scheme</sc-raw-th>
+              <sc-raw-th style="text-align:left;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60">Officer</sc-raw-th>
+              <sc-raw-th style="text-align:left;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60">Defects</sc-raw-th>
+              <sc-raw-th style="text-align:left;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60">Status</sc-raw-th>
+            </sc-raw-tr>
+          </sc-raw-thead>
+          <sc-raw-tbody>
+            <sc-for list="{{ deskRows }}" as="d" hint-placeholder-count="7">
+              <sc-raw-tr style="border-bottom:1px solid rgba(29,31,32,0.1)">
+                <sc-raw-td style="padding:8px">{{ d.address }}</sc-raw-td>
+                <sc-raw-td style="padding:8px;color:#5d5d60">{{ d.scheme }}</sc-raw-td>
+                <sc-raw-td style="padding:8px;color:#5d5d60">{{ d.officer }}</sc-raw-td>
+                <sc-raw-td style="padding:8px">{{ d.defects }}</sc-raw-td>
+                <sc-raw-td style="padding:8px"><span style="{{ d.pill }}">{{ d.status }}</span></sc-raw-td>
+              </sc-raw-tr>
+            </sc-for>
+          </sc-raw-tbody>
+        </sc-raw-table>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:8px">Median minutes per SOC</div>
+        <sc-for list="{{ officerBars }}" as="o" hint-placeholder-count="6">
+          <div style="margin-bottom:9px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>{{ o.name }}</span><span style="color:#5d5d60">{{ o.mins }}</span></div>
+            <div style="height:7px;background:#e0e1e3"><span style="{{ o.bar }}"></span></div>
+          </div>
+        </sc-for>
+        <div style="border:1px solid rgba(29,31,32,0.16);padding:11px;font-size:12px;margin-top:14px;color:#3f4143">
+          Paper baseline was 95 min per SOC including office write-up. The prototype's target is 38 min, all of it on site.
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isLand }}" hint-placeholder-val="{{ false }}">
+  <div class="blueprint" style="max-width:720px;margin:8px auto;border:1px solid rgba(29,31,32,0.16);background:#f8f8f9;padding:24px">
+    <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(29,31,32,0.16);padding-bottom:12px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <image-slot id="kingston-logo-landlord" style="width:136px;height:72px" shape="rect" fit="contain" placeholder="Logo"></image-slot>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;letter-spacing:0.04em;line-height:1.15">KINGSTON COUNCIL<br>PRIVATE LEASING SCHEME</div>
+      </div>
+      <div style="font-size:11px;color:#5d5d60">Secure link · expires in 13 days</div>
+    </div>
+    <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60">For Pemberton Lettings</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:32px;line-height:1.1;margin:3px 0 10px">Please check and sign the Schedule of Condition for 14 Acre Road, KT2 6EU</h2>
+    <p style="font-size:14px;color:#3f4143;max-width:60ch">Prepared by J. Patel on 15 September 2026. Nothing is charged to you by signing — you are confirming the record is accurate. If something is wrong, raise it item by item and the officer is notified.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:18px;margin:20px 0">
+      <sc-for list="{{ landStats }}" as="s" hint-placeholder-count="4">
+        <div class="blueprint" style="border:1px solid rgba(29,31,32,0.16);padding:11px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:28px;line-height:1">{{ s.value }}</div>
+          <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#5d5d60">{{ s.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#5d5d60;margin-bottom:6px">Items not marked Good</div>
+    <sc-for list="{{ landDefects }}" as="d" hint-placeholder-count="4">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;border-bottom:1px solid rgba(29,31,32,0.1);padding:9px 0">
+        <div>
+          <div style="font-size:14px">{{ d.item }}</div>
+          <div style="font-size:12px;color:#5d5d60">{{ d.room }} · {{ d.note }}</div>
+        </div>
+        <span style="{{ d.pill }}">{{ d.grade }}</span>
+        <button style="border:1px solid rgba(29,31,32,0.16);background:transparent;padding:5px 9px;font-size:12px;cursor:pointer" style-hover="background:rgba(29,31,32,0.07)">Dispute</button>
+      </div>
+    </sc-for>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;align-items:center">
+      <a href="SOC Report Preview.dc.html" target="_blank" style="border:1px solid rgba(29,31,32,0.16);padding:10px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px;text-decoration:none;color:#1d1f20">READ THE FULL REPORT</a>
+      <button style="background:#17708c;color:#f2f2f3;border:1px solid #17708c;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#14657f">I AGREE — SIGN NOW</button>
+      <span style="font-size:12px;color:#5d5d60">Or reply to the email for a wet-signature PDF.</span>
+    </div>
+  </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;fourthGrade&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Rules&quot;}}">
+const SETS = {
+  garden: ['BOUNDARY','GATE','LAWN','BORDERS','PATH','PATIO','SHED'],
+  frontdoor: ['PORCH','DOOR','DOOR FRAME','DOOR BELL','SPY HOLE','NUMERALS','LETTERBOX','LIGHT','LOCKS'],
+  hall: ['WALLS','CEILING','DOOR','HANDLE','DOOR FRAME','WOODWORK','RADIATOR','CUPBOARD','SINGLE SOCKET','DOUBLE SOCKET','LIGHT SWITCH','SMOKE ALARM','INTERCOM','LIGHT FITTING'],
+  reception: ['WALLS','CEILING','DOOR','HANDLE','WOODWORK','WINDOW','WINDOW HANDLE','RADIATOR','PATIO DOORS','DOUBLE SOCKET','SINGLE SOCKET','LIGHT SWITCH','AERIAL','SMOKE ALARM','LIGHT FITTING'],
+  kitchen: ['WALLS','CEILING','DOOR','WINDOW','RADIATOR','BASE UNITS','WALL UNITS','WORK SURFACE','SINK','TAP','BACKSPLASH','OVEN','HOB','EXTRACTOR','BOILER','COOKER SWITCH','SMOKE ALARM','LIGHT FITTING'],
+  stairs: ['WALLS','CEILING','BANISTER','HANDRAIL','WOODWORK','WINDOW','RADIATOR','CUPBOARD','LIGHT SWITCH','SMOKE ALARM','LIGHT FITTING'],
+  bedroom: ['WALLS','CEILING','DOOR','HANDLE','WOODWORK','WINDOW','WINDOW HANDLE','RADIATOR','DOUBLE SOCKET','LIGHT SWITCH','AERIAL','SMOKE ALARM','LIGHT FITTING'],
+  bathroom: ['WALLS','CEILING','DOOR','WINDOW','RADIATOR','BATH','BATH TAPS','SHOWER','SINK','WATER CLOSET','BATHROOM FITTINGS','MIRROR','EXTRACTOR','LIGHT FITTING'],
+  wc: ['WALLS','CEILING','DOOR','WINDOW','WATER CLOSET','SINK','LIGHT FITTING']
+};
+
+const PLANS = {
+  'Studio flat': [['FRONT DOOR','frontdoor'],['RECEPTION / BEDSIT','reception'],['KITCHEN','kitchen'],['BATHROOM','bathroom']],
+  '1-bed flat': [['FRONT DOOR','frontdoor'],['HALLWAY','hall'],['RECEPTION','reception'],['KITCHEN','kitchen'],['BEDROOM 1','bedroom'],['BATHROOM','bathroom']],
+  '2-bed flat': [['FRONT DOOR','frontdoor'],['HALLWAY','hall'],['RECEPTION','reception'],['KITCHEN','kitchen'],['BEDROOM 1','bedroom'],['BEDROOM 2','bedroom'],['BATHROOM','bathroom']],
+  '3-bed house': [['FRONT GARDEN','garden'],['FRONT DOOR','frontdoor'],['HALLWAY','hall'],['RECEPTION','reception'],['KITCHEN','kitchen'],['STAIRS & LANDING','stairs'],['BEDROOM 1','bedroom'],['BEDROOM 2','bedroom'],['BEDROOM 3','bedroom'],['BATHROOM','bathroom'],['SEPARATE WC','wc'],['BACK GARDEN','garden']]
+};
+
+const LIB = {
+  WALLS: ['Emulsion, magnolia','Lining paper, painted white','Recently redecorated'],
+  CEILING: ['Artex, white','Smooth plaster, white'],
+  WINDOW: ['UPVC double glazed, white','Timber sash, painted'],
+  RADIATOR: ['Single panel, white','Double panel, white'],
+  DOOR: ['Hardwood, painted white','Glazed panel door'],
+  'WORK SURFACE': ['Laminate, oak effect','Solid beech'],
+  'BASE UNITS': ['Gloss white, chrome handles','Shaker, grey'],
+  OVEN: ['Zanussi ZOB35301, single electric','Indesit IFW6330, single'],
+  HOB: ['Bosch 4-ring ceramic','Zanussi 4-ring gas'],
+  BATH: ['White acrylic, panel bath','White steel, shower over'],
+  LAWN: ['Turf, mown','Turf, overgrown'],
+  _default: ['Standard, white','Standard, chrome','Not present']
+};
+
+const GRADES = [
+  { k: 'G', label: 'GOOD', bg: '#cfe8ef', fg: '#0b3d4c' },
+  { k: 'F', label: 'FAIR', bg: '#6fb4c9', fg: '#072932' },
+  { k: 'P', label: 'POOR', bg: '#0f5568', fg: '#f2f2f3' },
+  { k: 'U', label: 'UNACCEPT', bg: '#072932', fg: '#f2f2f3' }
+];
+
+const SEED = {
+  'KITCHEN|WORK SURFACE': { g: 'P', c: 'Swollen and delaminating at the join left of the sink; water ingress.', p: 2 },
+  'KITCHEN|WALLS': { g: 'F', c: 'Grease staining above the hob, 0.5m patch.', p: 1 },
+  'KITCHEN|EXTRACTOR': { g: 'F', c: 'Filter heavily clogged, fan runs.', p: 1 },
+  'BATHROOM|SHOWER': { g: 'U', c: 'Mixer cracked at the body, leaks under pressure. Not usable.', p: 3 },
+  'RECEPTION|WALLS': { g: 'F', c: 'Scuffing to the chimney breast.', p: 1 }
+};
+
+class Component extends DCLogic {
+  state = {
+    mode: 'phone', screen: 'visits', room: 'KITCHEN',
+    scheme: 'PLS', visitType: 'Check-in', propType: '3-bed house',
+    addr: '14 Acre Road, KT2 6EU',
+    cond: {}, desc: {}, comment: {}, photos: {}, qty: {},
+    photoFor: null, signMode: 'onsite', signed: false, dictating: false
+  };
+
+  componentDidMount() {
+    try {
+      const saved = localStorage.getItem('kingston-soc-prototype-v1');
+      if (saved) { this.setState(JSON.parse(saved)); return; }
+    } catch (e) { /* storage unavailable — run as a fresh demo */ }
+    this.seed();
+  }
+
+  componentDidUpdate() {
+    try {
+      const { cond, desc, comment, photos, qty, scheme, visitType, propType, addr, signMode, signed } = this.state;
+      localStorage.setItem('kingston-soc-prototype-v1', JSON.stringify({ cond, desc, comment, photos, qty, scheme, visitType, propType, addr, signMode, signed }));
+    } catch (e) { /* ignore */ }
+  }
+
+  reset() {
+    try { localStorage.removeItem('kingston-soc-prototype-v1'); } catch (e) { /* ignore */ }
+    this.setState({ desc: {}, qty: {}, signed: false, signMode: 'onsite', screen: 'visits' }, () => this.seed());
+  }
+
+  seed() {
+    const cond = {}, comment = {}, photos = {};
+    const plan = PLANS[this.state.propType];
+    plan.slice(0, 5).forEach(([name, kind]) => SETS[kind].forEach(it => { cond[name + '|' + it] = 'G'; }));
+    Object.keys(SEED).forEach(k => { cond[k] = SEED[k].g; comment[k] = SEED[k].c; photos[k] = SEED[k].p; });
+    delete photos['KITCHEN|WORK SURFACE'];
+    this.setState({ cond, comment, photos });
+  }
+
+  plan() { return PLANS[this.state.propType] || PLANS['3-bed house']; }
+  kindOf(name) { const r = this.plan().find(p => p[0] === name); return r ? r[1] : 'bedroom'; }
+  itemsOf(name) { return SETS[this.kindOf(name)]; }
+  totals() {
+    let done = 0, total = 0, defects = 0, missing = 0;
+    this.plan().forEach(([name, kind]) => SETS[kind].forEach(it => {
+      const k = name + '|' + it, g = this.state.cond[k];
+      total++;
+      if (g) done++;
+      if (g && g !== 'G') { defects++; if (!this.state.photos[k]) missing++; }
+    }));
+    return { done, total, defects, missing, pct: total ? Math.round(done / total * 100) : 0 };
+  }
+  bar(pct, h) { return 'display:block;height:' + (h || 4) + 'px;width:' + pct + '%;background:#17708c'; }
+  pill(text) {
+    const g = GRADES.find(x => x.label.startsWith(text)) || GRADES[0];
+    return 'display:inline-block;padding:2px 7px;font-size:10px;letter-spacing:0.08em;background:' + g.bg + ';color:' + g.fg;
+  }
+  tab(on) {
+    return 'padding:9px 13px;border:0;cursor:pointer;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;letter-spacing:0.04em;' +
+      (on ? 'background:#17708c;color:#f2f2f3' : 'background:transparent;color:#1d1f20');
+  }
+  chip(on) {
+    return 'padding:9px;border:1px solid ' + (on ? '#17708c' : 'rgba(29,31,32,0.16)') + ';cursor:pointer;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;letter-spacing:0.03em;' +
+      (on ? 'background:#17708c;color:#f2f2f3' : 'background:transparent;color:#1d1f20');
+  }
+
+  go(screen) { return () => this.setState({ screen }); }
+  set(key, value) { return () => this.setState({ [key]: value }); }
+
+  notes() {
+    const s = this.state.screen;
+    const n = {
+      visits: ['The day arrives already built', 'Visits are assigned from the office, so the officer opens the phone and the round is there — address, scheme, visit type and the last report all attached. Nothing is looked up on the doorstep.', ['No printing a blank 41-page SOC the night before', 'Property history travels with the visit', 'Works with no signal — queue uploads itself']],
+      newVisit: ['Property type does the typing', 'Picking "3-bed house" builds the whole room and item list from the SOC template. Scheme choice decides which form you get: the full PLS schedule, or the light version for nightly-paid, tenant finder and PRSO.', ['12 rooms / 141 items generated in one tap', 'One template, four schemes, no separate Word files', 'Address pulls landlord, last SOC and cert dates']],
+      rooms: ['Exceptions, not everything', '"Mark all as good" grades the whole property in one tap. The officer then only touches what is actually wrong — which is how a walk-round really works.', ['Typical property: 8 edits instead of 141', 'Progress is visible so nothing is skipped', 'Rooms with defects are flagged on the list']],
+      room: ['Four grades and a forced photo', 'Good / Fair / Poor / Unacceptable. Anything below Good opens a comment box and demands a photo — that single rule is what wins dilapidation disputes. The description chips keep officers using the same words.', ['Consistent wording across all six officers', 'No defect can leave the property unevidenced', 'Voice notes for hands-full moments']],
+      photo: ['Photos that cannot drift', 'Every shot is stamped with address, date, time, GPS, the item it belongs to and the report number — burned into the pixels and written to metadata. It files itself against the item.', ['No more matching photos to rooms in the office', 'Evidence stands up when a landlord challenges it', 'Stored once, per property, in the report']],
+      compare: ['Check-out reads the check-in', 'The officer sees the check-in grade and photo beside today\u2019s, only for items that moved. Fair wear is allowed for automatically against tenancy length.', ['Disputes argued from two photos, not memory', 'Only changed items enter the schedule of dilapidation', 'Charge suggestions from a rate card']],
+      sign: ['The report is finished on site', 'Meters, signatures and the PDF all happen before the officer leaves. If the landlord is not there, a signing link is emailed and chased automatically.', ['Zero office write-up — the pain point you named first', 'Sign-off tracked, not hoped for', 'Report cannot issue with unevidenced defects']],
+      done: ['One record, one number', 'The PDF, the photos and the data all live under one report number against the property. Search finds it in seconds a year later.', ['41-page report generated in under 10 seconds', 'Landlord, tenant and council copies sent at once', 'Feeds next year\u2019s check-out automatically']]
+    };
+    return n[s] || n.visits;
+  }
+
+  renderVals() {
+    const st = this.state, t = this.totals(), four = this.props.fourthGrade !== false;
+    const grades = four ? GRADES : GRADES.slice(0, 3);
+    const note = this.notes();
+    const roomItems = this.itemsOf(st.room);
+    const roomDone = roomItems.filter(i => st.cond[st.room + '|' + i]).length;
+
+    const items = roomItems.map(name => {
+      const k = st.room + '|' + name;
+      const g = st.cond[k];
+      const defect = !!g && g !== 'G';
+      const photos = st.photos[k] || 0;
+      return {
+        name, qty: st.qty[k] === undefined ? 1 : st.qty[k],
+        desc: st.desc[k] || '', comment: st.comment[k] || '',
+        isDefect: defect,
+        inc: () => this.setState({ qty: { ...st.qty, [k]: (st.qty[k] === undefined ? 1 : st.qty[k]) + 1 } }),
+        dec: () => this.setState({ qty: { ...st.qty, [k]: Math.max(0, (st.qty[k] === undefined ? 1 : st.qty[k]) - 1) } }),
+        onDesc: e => this.setState({ desc: { ...st.desc, [k]: e.target.value } }),
+        onComment: e => this.setState({ comment: { ...st.comment, [k]: e.target.value } }),
+        grades: grades.map(gr => ({
+          label: gr.label,
+          pick: () => this.setState({ cond: { ...st.cond, [k]: gr.k } }),
+          style: 'flex:1;padding:8px 2px;cursor:pointer;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:11px;letter-spacing:0.06em;border:1px solid ' +
+            (g === gr.k ? gr.bg : 'rgba(29,31,32,0.16)') + ';' +
+            (g === gr.k ? 'background:' + gr.bg + ';color:' + gr.fg : 'background:transparent;color:#5d5d60')
+        })),
+        lib: (LIB[name] || LIB._default).map(v => ({
+          label: v, pick: () => this.setState({ desc: { ...st.desc, [k]: v } })
+        })),
+        photo: () => this.setState({ photoFor: k, screen: 'photo' }),
+        photoLabel: photos ? '▣ ' + photos + ' PHOTO' + (photos > 1 ? 'S' : '') : '▢ PHOTO REQUIRED',
+        photoNote: photos ? 'stamped and attached' : 'blocks the report until taken',
+        photoStyle: 'padding:7px 10px;cursor:pointer;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:12px;letter-spacing:0.04em;border:1px solid ' +
+          (photos ? 'rgba(29,31,32,0.16);background:transparent;color:#1d1f20' : '#17708c;background:#17708c;color:#f2f2f3')
+      };
+    });
+
+    const rooms = this.plan().map(([name, kind]) => {
+      const list = SETS[kind];
+      const d = list.filter(i => st.cond[name + '|' + i]).length;
+      const flags = list.filter(i => { const g = st.cond[name + '|' + i]; return g && g !== 'G'; }).length;
+      const pct = Math.round(d / list.length * 100);
+      return {
+        name, count: d + '/' + list.length, bar: this.bar(pct, 3),
+        hasFlags: flags > 0, flagText: flags + ' item' + (flags > 1 ? 's' : '') + ' below good',
+        open: () => this.setState({ room: name, screen: 'room' })
+      };
+    });
+
+    return {
+      resetDemo: () => this.reset(),
+      isPhone: st.mode === 'phone', isDesk: st.mode === 'desk', isLand: st.mode === 'land',
+      setPhone: this.set('mode', 'phone'), setDesk: this.set('mode', 'desk'), setLand: this.set('mode', 'land'),
+      tabPhone: this.tab(st.mode === 'phone'), tabDesk: this.tab(st.mode === 'desk'), tabLand: this.tab(st.mode === 'land'),
+
+      isVisits: st.screen === 'visits', isNew: st.screen === 'newVisit', isRooms: st.screen === 'rooms',
+      isRoom: st.screen === 'room', isPhoto: st.screen === 'photo', isCompare: st.screen === 'compare',
+      isSign: st.screen === 'sign', isDone: st.screen === 'done',
+      goVisits: this.go('visits'), goNew: this.go('newVisit'), goRooms: this.go('rooms'),
+      goSign: this.go('sign'), goCompare: this.go('compare'),
+      jumpRoom: e => { e.preventDefault(); this.setState({ screen: 'room', room: 'KITCHEN' }); },
+      jumpCompare: e => { e.preventDefault(); this.setState({ screen: 'compare' }); },
+      jumpSign: e => { e.preventDefault(); this.setState({ screen: 'sign' }); },
+
+      noteTitle: note[0], noteBody: note[1], noteGains: note[2].map(text => ({ text })),
+
+      visits: [
+        { address: '14 Acre Road, KT2 6EU', scheme: 'PLS', type: 'Check-in', time: '09:30', form: 'Full SOC', status: t.pct + '%', pct: t.pct },
+        { address: 'Flat 3, 22 Surbiton Hill Rd', scheme: 'Nightly paid', type: 'Check-out', time: '11:00', form: 'Light SOC', status: 'Not started', pct: 0 },
+        { address: '8 Cambridge Gardens', scheme: 'Tenant finder', type: 'Check-in', time: '14:00', form: 'Light SOC', status: 'Not started', pct: 0 },
+        { address: '51 Villiers Avenue', scheme: 'PRSO', type: 'Check-out', time: '16:15', form: 'Light SOC', status: 'Not started', pct: 0 }
+      ].map((v, i) => ({
+        ...v, bar: this.bar(v.pct, 4),
+        pill: 'display:inline-block;padding:2px 7px;font-size:10px;letter-spacing:0.08em;flex:0 0 auto;' + (v.pct ? 'background:#cfe8ef;color:#0b3d4c' : 'background:#e0e1e3;color:#5d5d60'),
+        open: () => this.setState({ screen: i === 0 ? 'rooms' : 'newVisit' })
+      })),
+
+      schemes: ['PLS', 'Nightly paid', 'Tenant finder', 'PRSO'].map(label => ({
+        label, pick: this.set('scheme', label), style: this.chip(st.scheme === label)
+      })),
+      visitTypes: ['Check-in', 'Check-out'].map(label => ({
+        label, pick: this.set('visitType', label), style: this.chip(st.visitType === label)
+      })),
+      propTypes: Object.keys(PLANS).map(label => ({
+        label, pick: this.set('propType', label), style: this.chip(st.propType === label)
+      })),
+      addr: st.addr, setAddr: e => this.setState({ addr: e.target.value }),
+      scheme: st.scheme, visitType: st.visitType, propType: st.propType,
+      roomCount: this.plan().length, itemCount: t.total,
+      formName: st.scheme === 'PLS' ? 'full PLS Schedule of Condition' : 'light SOC (' + st.scheme + ')',
+
+      rooms, doneText: t.done + ' of ' + t.total + ' items graded · ' + t.defects + ' below good',
+      pctText: t.pct + '%', totalBar: this.bar(t.pct, 6),
+      markAllGood: () => { const c = { ...st.cond }; this.plan().forEach(([n, k]) => SETS[k].forEach(i => { if (!c[n + '|' + i]) c[n + '|' + i] = 'G'; })); this.setState({ cond: c }); },
+
+      room: st.room, items,
+      roomProgress: roomDone + '/' + roomItems.length + ' graded',
+      markRoomGood: () => { const c = { ...st.cond }; roomItems.forEach(i => { c[st.room + '|' + i] = 'G'; }); this.setState({ cond: c }); },
+      dictate: () => this.setState({ dictating: !st.dictating }),
+      dictateLabel: st.dictating ? '● LISTENING…' : '🎙 VOICE NOTE',
+      duplicateRoom: () => this.setState({ screen: 'rooms' }),
+
+      photoTitle: st.photoFor ? st.photoFor.split('|')[1] : 'Item',
+      photoStamp: st.photoFor ? st.photoFor.replace('|', ' / ') : '',
+      cancelPhoto: this.go('room'),
+      usePhoto: () => this.setState({ screen: 'room', photos: { ...st.photos, [st.photoFor]: (st.photos[st.photoFor] || 0) + 1 } }),
+
+      compareRows: [
+        { room: 'Kitchen', item: 'WORK SURFACE', was: 'GOOD', now: 'POOR', note: 'Delamination at the sink join — not present at check-in.', charge: 'CHARGEABLE · £180 est.' },
+        { room: 'Bathroom', item: 'SHOWER', was: 'GOOD', now: 'UNACCEPT', note: 'Mixer body cracked. Landlord repair, not tenant damage.', charge: 'LANDLORD REPAIR' },
+        { room: 'Reception', item: 'WALLS', was: 'GOOD', now: 'FAIR', note: 'Scuffing consistent with 31 months occupation.', charge: 'FAIR WEAR · NO CHARGE' },
+        { room: 'Bedroom 2', item: 'CARPET', was: 'FAIR', now: 'POOR', note: 'Burn mark 40mm, centre of room.', charge: 'CHARGEABLE · £95 est.' }
+      ].map(c => ({
+        ...c, wasStyle: this.pill(c.was), nowStyle: this.pill(c.now),
+        chargeStyle: 'display:inline-block;padding:2px 7px;font-size:10px;letter-spacing:0.06em;border:1px solid ' +
+          (c.charge.indexOf('NO CHARGE') > -1 ? 'rgba(29,31,32,0.16);color:#5d5d60' : '#0f5568;color:#0f5568')
+      })),
+
+      summary: [
+        { value: t.total, label: 'items recorded' },
+        { value: t.defects, label: 'below good' },
+        { value: Object.values(st.photos).reduce((a, b) => a + b, 0) + 32, label: 'photos stamped' },
+        { value: '38m', label: 'on site' }
+      ],
+      hasBlockers: t.missing > 0,
+      blockerText: t.missing + ' defect' + (t.missing > 1 ? 's' : '') + ' still has no photo.',
+      signModes: [
+        { k: 'onsite', label: 'Sign on this phone now', note: 'Landlord or agent present at the visit' },
+        { k: 'link', label: 'Email a secure signing link', note: 'Chased automatically at 3, 7 and 12 days' },
+        { k: 'wet', label: 'Send a PDF for wet signature', note: 'Scan uploads back against the report' }
+      ].map(m => ({
+        ...m, pick: this.set('signMode', m.k),
+        style: 'display:block;width:100%;text-align:left;padding:10px;margin-bottom:6px;cursor:pointer;border:1px solid ' +
+          (st.signMode === m.k ? '#17708c' : 'rgba(29,31,32,0.16)') + ';background:' + (st.signMode === m.k ? '#eaf5f8' : 'transparent')
+      })),
+      signOnSite: st.signMode === 'onsite',
+      doSign: () => this.setState({ signed: true }),
+      padLabel: st.signed ? '✓ Signed — A. Pemberton, 15/09/2026 10:44' : 'Tap and sign with a finger',
+      padStyle: 'width:100%;height:84px;cursor:pointer;border:1px dashed ' + (st.signed ? '#17708c' : 'rgba(29,31,32,0.35)') +
+        ';background:' + (st.signed ? '#eaf5f8' : '#fff') + ';font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:14px;color:' + (st.signed ? '#0b3d4c' : '#5d5d60'),
+      generate: () => { if (t.missing === 0) this.setState({ screen: 'done' }); },
+      generateDisabled: t.missing > 0,
+      generateLabel: t.missing > 0 ? 'FIX ' + t.missing + ' MISSING PHOTO' + (t.missing > 1 ? 'S' : '') + ' FIRST' : 'GENERATE THE SOC REPORT →',
+      generateStyle: 'width:100%;margin-top:14px;padding:12px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:15px;letter-spacing:0.04em;border:1px solid ' +
+        (t.missing > 0 ? 'rgba(29,31,32,0.16);background:#e0e1e3;color:#5d5d60;cursor:not-allowed' : '#17708c;background:#17708c;color:#f2f2f3;cursor:pointer'),
+
+      doneSteps: [
+        { text: 'PDF built from the template — council branding, disclaimer, declaration, photo appendix.' },
+        { text: 'Emailed to landlord, agent and tenant; copy filed against the property record.' },
+        { text: 'Data kept as fields, not a document, so next year\u2019s check-out can compare it.' },
+        { text: 'Photos retained 7 years, then deleted on schedule under the retention policy.' }
+      ],
+
+      kpis: [
+        { value: '100', label: 'visits booked', delta: 'week 38' },
+        { value: '87', label: 'reports issued', delta: '+19 vs paper baseline' },
+        { value: '6', label: 'awaiting signature', delta: '2 overdue, chased' },
+        { value: '38m', label: 'median per SOC', delta: 'was 95m on paper' },
+        { value: '0', label: 'office write-up hours', delta: 'was 31h / week' }
+      ],
+      deskRows: [
+        { address: '14 Acre Road, KT2 6EU', scheme: 'PLS', officer: 'J. Patel', defects: '5', status: 'Draft' },
+        { address: 'Flat 3, 22 Surbiton Hill Rd', scheme: 'Nightly paid', officer: 'J. Patel', defects: '—', status: 'Booked' },
+        { address: '8 Cambridge Gardens', scheme: 'Tenant finder', officer: 'R. Owusu', defects: '2', status: 'Signed' },
+        { address: '51 Villiers Avenue', scheme: 'PRSO', officer: 'R. Owusu', defects: '9', status: 'Awaiting' },
+        { address: '2a Coombe Lane West', scheme: 'PLS', officer: 'M. Shah', defects: '1', status: 'Signed' },
+        { address: 'Flat 11, Gibbon Road', scheme: 'Nightly paid', officer: 'L. Byrne', defects: '4', status: 'Awaiting' },
+        { address: '77 Richmond Park Road', scheme: 'PLS', officer: 'D. Nkemelu', defects: '—', status: 'Booked' }
+      ].map(d => ({
+        ...d,
+        pill: 'display:inline-block;padding:2px 8px;font-size:11px;letter-spacing:0.06em;' +
+          (d.status === 'Signed' ? 'background:#cfe8ef;color:#0b3d4c' :
+            d.status === 'Awaiting' ? 'background:#6fb4c9;color:#072932' :
+              d.status === 'Draft' ? 'background:#e0e1e3;color:#5d5d60' : 'border:1px solid rgba(29,31,32,0.16);color:#5d5d60')
+      })),
+      officerBars: [
+        { name: 'J. Patel', mins: 34 }, { name: 'R. Owusu', mins: 38 }, { name: 'M. Shah', mins: 41 },
+        { name: 'L. Byrne', mins: 44 }, { name: 'D. Nkemelu', mins: 52 }, { name: 'Team median', mins: 38 }
+      ].map(o => ({ name: o.name, mins: o.mins + ' min', bar: this.bar(Math.round(o.mins / 60 * 100), 7) })),
+
+      landStats: [
+        { value: '141', label: 'items recorded' },
+        { value: '5', label: 'below good' },
+        { value: '38', label: 'photos' },
+        { value: '41', label: 'pages' }
+      ],
+      landDefects: [
+        { item: 'WORK SURFACE', room: 'Kitchen', note: 'Delamination at the sink join', grade: 'POOR' },
+        { item: 'SHOWER', room: 'Bathroom', note: 'Mixer cracked, leaks under pressure', grade: 'UNACCEPT' },
+        { item: 'WALLS', room: 'Kitchen', note: 'Grease staining above the hob', grade: 'FAIR' },
+        { item: 'EXTRACTOR', room: 'Kitchen', note: 'Filter clogged', grade: 'FAIR' },
+        { item: 'WALLS', room: 'Reception', note: 'Scuffing to chimney breast', grade: 'FAIR' }
+      ].map(d => ({ ...d, pill: this.pill(d.grade) }))
+    };
+  }
+}
+
+</script>
+
+
+</body></html>
