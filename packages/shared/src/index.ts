@@ -5,3 +5,4 @@ export * from './sync.js';
 export * from './rules.js';
 export * from './content.js';
 export * from './api.js';
+export * from './roles.js';

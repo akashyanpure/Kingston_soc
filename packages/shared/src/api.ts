@@ -5,6 +5,7 @@
  *
  * Roles: officer = own visits only; manager = all visits + properties + assign;
  * admin = manager + users + form versions + description phrases.
+ * Role portals (manager dashboard, archive, admin console) and their endpoints: see roles.ts.
  *
  * | Method | Path                              | Role     | Body / query              | Response                    |
  * |--------|-----------------------------------|----------|---------------------------|-----------------------------|
@@ -81,6 +82,8 @@ export const CreateVisitRequest = z.object({
   /** Room codes (FormDefinition.rooms[].code) present at the property; others get present=false. */
   presentRoomCodes: z.array(z.string()).min(1),
   scheduledAt: zTime.nullable().optional(),
+  /** Manager/admin only: schedule the visit for this officer (defaults to the caller). */
+  officerId: zId.optional(),
 });
 export type CreateVisitRequest = z.infer<typeof CreateVisitRequest>;
 
