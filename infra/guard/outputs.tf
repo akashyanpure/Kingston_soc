@@ -17,7 +17,7 @@ output "project" {
   value = var.project
 }
 output "killswitch_function" {
-  value = aws_lambda_function.killswitch.function_name
+  value = var.enable_killswitch ? aws_lambda_function.killswitch[0].function_name : ""
 }
 output "budget_name" {
   value = aws_budgets_budget.monthly.name

@@ -25,14 +25,17 @@ PROJECT = os.environ["PROJECT"]
 SCOPE = os.environ.get("SCOPE", "account")
 DISTRIBUTION_ID = os.environ["DISTRIBUTION_ID"]
 ALERT_TOPIC_ARN = os.environ["ALERT_TOPIC_ARN"]
-HOME_REGION = os.environ.get("HOME_REGION", "eu-west-2")
+HOME_REGION = os.environ.get("HOME_REGION", "eu-north-1")
 
 
 def _regions():
     if SCOPE == "project":
         return [HOME_REGION]
-    ec2 = boto3.client("ec2", region_name=HOME_REGION)
-    return [r["RegionName"] for r in ec2.describe_regions(AllRegions=False)["Regions"]]
+    try:
+        ec2 = boto3.client("ec2", region_name=HOME_REGION)
+        return [r["RegionName"] for r in ec2.describe_regions(AllRegions=False)["Regions"]]
+    except ClientError:
+        return [HOME_REGION]
 
 
 def _filters():
@@ -58,7 +61,7 @@ def handler(event, context):
         except ClientError as e:  # keep going: partial shutdown beats none
             log.append(f"FAILED {desc}: {e.response['Error']['Code']}")
 
-    for region in _regions():
+    def sweep(region):
         ec2 = boto3.client("ec2", region_name=region)
         # EC2 instances
         ids = [
@@ -91,6 +94,12 @@ def handler(event, context):
                 if db["DBInstanceStatus"] == "available":
                     dbid = db["DBInstanceIdentifier"]
                     act(f"{region}: stop RDS {dbid}", lambda dbid=dbid: rds.stop_db_instance(DBInstanceIdentifier=dbid))
+
+    for region in _regions():
+        try:
+            sweep(region)
+        except ClientError as e:  # e.g. a region this account is not allowed to use
+            log.append(f"skipped {region}: {e.response['Error']['Code']}")
 
     # CloudFront: disable the project distribution (no traffic = no cost)
     cf = boto3.client("cloudfront")

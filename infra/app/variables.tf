@@ -5,7 +5,7 @@ variable "profile" {
 }
 
 variable "instance_type" {
-  description = "t4g.micro (1 GB, ~$0.0088/h in London). t4g.small (2 GB) makes PDFs faster at ~2x cost."
+  description = "t4g.micro (1 GB, ~$0.0088/h). t4g.small (2 GB) makes PDFs faster at ~2x cost."
   type        = string
   default     = "t4g.micro"
 }

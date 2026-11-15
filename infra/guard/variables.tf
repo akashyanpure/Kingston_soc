@@ -1,7 +1,7 @@
 variable "region" {
   description = "AWS region for everything except CloudFront/Budgets (global)."
   type        = string
-  default     = "eu-west-2" # London
+  default     = "eu-north-1" # Stockholm: the only region this account (new AWS sign-up) may use
 }
 
 variable "profile" {
@@ -24,6 +24,12 @@ variable "monthly_cap_usd" {
   description = "Monthly budget for the WHOLE AWS account."
   type        = number
   default     = 10
+}
+
+variable "enable_killswitch" {
+  description = "Create the budget kill switch (SNS + Lambda). Off: the account already has an AWS $20 bill limit."
+  type        = bool
+  default     = false
 }
 
 variable "kill_at_percent" {

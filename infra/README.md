@@ -35,16 +35,16 @@ the backup bucket and the secrets.
 
 (Same as `powershell -ExecutionPolicy Bypass -File infra\soc.ps1 <command>`.)
 
-## The $10 cap
+## Spending protection
 
-- AWS Budget on the **whole account**: email at 50% ($5) actual and 100% forecast.
-- At **80% ($8) actual** the kill switch Lambda runs: terminates **all EC2 instances in every
-  region**, deletes unattached volumes, NAT gateways and spare Elastic IPs, stops RDS, and disables
-  the CloudFront URL — then emails a report. (`kill_scope = "project"` in
-  `infra/guard/terraform.tfvars` limits it to this project's resources.)
-- It fires below $10 because AWS billing data lags by hours. It is a strong guard, not a
-  to-the-cent hard limit; AWS has no hard spending stop.
-- Bring the app back after checking: `pnpm cloud:up`.
+- The account itself has an **AWS-enforced $20 monthly bill limit**.
+- AWS Budget (whole account, $10): emails at **50%**, **100%** actual and **100% forecast**.
+- **Kill switch: off by default, ready to enable.** Add `enable_killswitch = true` to
+  `infra/guard/terraform.tfvars` and run `pnpm cloud:init`. At 80% ($8) actual spend it
+  terminates all EC2 instances in every region, deletes unattached volumes, NAT gateways and spare
+  Elastic IPs, stops RDS, disables the CloudFront URL and emails a report
+  (`kill_scope = "project"` limits it to this project). Test with `pnpm cloud:killtest`.
+- AWS billing data lags by hours, so no budget action is a to-the-cent stop.
 
 ## Cost
 

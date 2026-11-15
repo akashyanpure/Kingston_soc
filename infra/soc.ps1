@@ -14,7 +14,7 @@
   backup    While UP: back up database + files to S3 now.
   logs      While UP: last API/web log lines.
   users     Show the cloud login accounts and their password.
-  killtest  Dry-run the kill switch (lists what it WOULD delete; changes nothing).
+  killtest  Dry-run the kill switch, if enabled (lists what it WOULD delete; changes nothing).
   nuke      Remove EVERYTHING incl. backups, budget and kill switch. Asks for confirmation.
 #>
 param(
@@ -66,7 +66,7 @@ function AwsJson {
 function Assert-Login {
   $id = & $AWS sts get-caller-identity --output json 2>$null
   if ($LASTEXITCODE -ne 0) {
-    Fail "AWS profile '$env:AWS_PROFILE' is not set up. Run:  aws configure --profile soc   (region eu-west-2)"
+    Fail "AWS profile '$env:AWS_PROFILE' is not set up. Run:  aws configure --profile soc   (region eu-north-1)"
   }
   $acct = ($id | Out-String | ConvertFrom-Json).Account
   Write-Host "AWS account $acct (profile $env:AWS_PROFILE)"
@@ -198,7 +198,7 @@ switch ($Command) {
     TF $Guard apply -auto-approve -input=false
     $g = Get-Guard
     Say "READY. App URL (offline until 'up'): $($g.Url)" 'Green'
-    Write-Host 'IMPORTANT: AWS sent a "Subscription Confirmation" email - click Confirm, or you will not get cost alerts.' -ForegroundColor Yellow
+    Write-Host 'Budget alerts (50% / 100% / forecast) go to your email. Kill switch: off unless enable_killswitch = true.' -ForegroundColor Yellow
   }
 
   'up' {
@@ -297,6 +297,7 @@ switch ($Command) {
   'killtest' {
     Assert-Login; Assert-GuardReady
     $g = Get-Guard
+    if ([string]::IsNullOrWhiteSpace($g.Kill)) { Fail "kill switch is off. Enable: add 'enable_killswitch = true' to infra\guard\terraform.tfvars, then run init." }
     $out = Join-Path $env:TEMP 'soc-killtest.json'
     $payloadFile = Join-Path $env:TEMP 'soc-killtest-payload.json'
     [IO.File]::WriteAllText($payloadFile, '{"dryRun": true}')

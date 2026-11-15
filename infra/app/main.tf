@@ -144,12 +144,27 @@ resource "aws_iam_instance_profile" "server" {
 }
 
 # ── Server ───────────────────────────────────────────────────────────────────
-data "aws_ssm_parameter" "al2023_arm" {
-  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+# Latest Amazon Linux 2023 (arm64). Looked up by name: the public SSM "latest AMI"
+# parameter is not available in every region.
+data "aws_ami" "al2023_arm" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-kernel-*-arm64"]
+  }
+  filter {
+    name   = "architecture"
+    values = ["arm64"]
+  }
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
 }
 
 resource "aws_instance" "server" {
-  ami                    = data.aws_ssm_parameter.al2023_arm.value
+  ami                    = data.aws_ami.al2023_arm.id
   instance_type          = var.instance_type
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.server.id]

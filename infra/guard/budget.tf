@@ -1,31 +1,80 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# $10/month cap (account-wide: covers ALL usage in this AWS account).
-#   50%  actual     → email
-#   100% forecast   → email
-#   kill_at_percent actual (default 80% = $8) → KILL SWITCH + email
-# AWS billing data lags by several hours, so the switch fires below $10 to leave
-# headroom. Budgets and the switch cost nothing at this size (first 2 budgets free,
-# Lambda/SNS within the always-free allowance).
+# Monthly budget (account-wide). Email alerts go straight to var.alert_email
+# (no SNS needed):  50% actual, 100% actual, 100% forecast.
+#
+# KILL SWITCH — OFF by default (the account already has an AWS-enforced $20 bill limit,
+# user decision 2026-11-15). Kept ready: set `enable_killswitch = true` in
+# infra/guard/terraform.tfvars and run `pnpm cloud:init`. When enabled, actual spend at
+# kill_at_percent of the cap triggers a Lambda that decommissions billable resources
+# (see killswitch.py) and emails a report.
 # ─────────────────────────────────────────────────────────────────────────────
-resource "aws_sns_topic" "alerts" {
-  name = "${var.project}-cost-alerts"
+locals {
+  ks = var.enable_killswitch ? 1 : 0
 }
 
+resource "aws_budgets_budget" "monthly" {
+  name         = "${var.project}-monthly-cap"
+  budget_type  = "COST"
+  limit_amount = format("%.2f", var.monthly_cap_usd)
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 50
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alert_email]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alert_email]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.alert_email]
+  }
+
+  dynamic "notification" {
+    for_each = var.enable_killswitch ? [1] : []
+    content {
+      comparison_operator       = "GREATER_THAN"
+      threshold                 = var.kill_at_percent
+      threshold_type            = "PERCENTAGE"
+      notification_type         = "ACTUAL"
+      subscriber_sns_topic_arns = [aws_sns_topic.kill[0].arn]
+    }
+  }
+
+  depends_on = [aws_sns_topic_policy.kill]
+}
+
+# ── Kill switch (only when enable_killswitch = true) ─────────────────────────
 resource "aws_sns_topic" "kill" {
-  name = "${var.project}-kill-switch"
+  count = local.ks
+  name  = "${var.project}-kill-switch"
 }
 
-resource "aws_sns_topic_subscription" "alerts_email" {
-  topic_arn = aws_sns_topic.alerts.arn
+resource "aws_sns_topic_subscription" "kill_email" {
+  count     = local.ks
+  topic_arn = aws_sns_topic.kill[0].arn
   protocol  = "email"
   endpoint  = var.alert_email
 }
 
 data "aws_iam_policy_document" "budgets_publish" {
-  for_each = { alerts = aws_sns_topic.alerts.arn, kill = aws_sns_topic.kill.arn }
+  count = local.ks
   statement {
     actions   = ["SNS:Publish"]
-    resources = [each.value]
+    resources = [aws_sns_topic.kill[0].arn]
     principals {
       type        = "Service"
       identifiers = ["budgets.amazonaws.com"]
@@ -38,48 +87,14 @@ data "aws_iam_policy_document" "budgets_publish" {
   }
 }
 
-resource "aws_sns_topic_policy" "budgets" {
-  for_each = { alerts = aws_sns_topic.alerts.arn, kill = aws_sns_topic.kill.arn }
-  arn      = each.value
-  policy   = data.aws_iam_policy_document.budgets_publish[each.key].json
+resource "aws_sns_topic_policy" "kill" {
+  count  = local.ks
+  arn    = aws_sns_topic.kill[0].arn
+  policy = data.aws_iam_policy_document.budgets_publish[0].json
 }
 
-resource "aws_budgets_budget" "monthly" {
-  name         = "${var.project}-monthly-cap"
-  budget_type  = "COST"
-  limit_amount = format("%.2f", var.monthly_cap_usd)
-  limit_unit   = "USD"
-  time_unit    = "MONTHLY"
-
-  notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 50
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
-  }
-
-  notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 100
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "FORECASTED"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
-  }
-
-  notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = var.kill_at_percent
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.kill.arn]
-  }
-
-  depends_on = [aws_sns_topic_policy.budgets]
-}
-
-# ── Kill switch Lambda ───────────────────────────────────────────────────────
 data "archive_file" "killswitch" {
+  count       = local.ks
   type        = "zip"
   source_file = "${path.module}/killswitch.py"
   output_path = "${path.module}/.build/killswitch.zip"
@@ -96,15 +111,17 @@ data "aws_iam_policy_document" "lambda_assume" {
 }
 
 resource "aws_iam_role" "killswitch" {
+  count              = local.ks
   name               = "${var.project}-killswitch"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 }
 
 data "aws_iam_policy_document" "killswitch" {
+  count = local.ks
   statement {
     sid       = "Logs"
     actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-    resources = ["${aws_cloudwatch_log_group.killswitch.arn}:*"]
+    resources = ["${aws_cloudwatch_log_group.killswitch[0].arn}:*"]
   }
   statement {
     sid = "Ec2Decommission"
@@ -128,28 +145,31 @@ data "aws_iam_policy_document" "killswitch" {
   statement {
     sid       = "Notify"
     actions   = ["sns:Publish"]
-    resources = [aws_sns_topic.alerts.arn]
+    resources = [aws_sns_topic.kill[0].arn]
   }
 }
 
 resource "aws_iam_role_policy" "killswitch" {
-  role   = aws_iam_role.killswitch.id
-  policy = data.aws_iam_policy_document.killswitch.json
+  count  = local.ks
+  role   = aws_iam_role.killswitch[0].id
+  policy = data.aws_iam_policy_document.killswitch[0].json
 }
 
 resource "aws_cloudwatch_log_group" "killswitch" {
+  count             = local.ks
   name              = "/aws/lambda/${var.project}-killswitch"
   retention_in_days = 14
 }
 
 resource "aws_lambda_function" "killswitch" {
+  count            = local.ks
   function_name    = "${var.project}-killswitch"
-  role             = aws_iam_role.killswitch.arn
+  role             = aws_iam_role.killswitch[0].arn
   runtime          = "python3.13"
   architectures    = ["arm64"]
   handler          = "killswitch.handler"
-  filename         = data.archive_file.killswitch.output_path
-  source_code_hash = data.archive_file.killswitch.output_base64sha256
+  filename         = data.archive_file.killswitch[0].output_path
+  source_code_hash = data.archive_file.killswitch[0].output_base64sha256
   timeout          = 300
   memory_size      = 128
   environment {
@@ -157,7 +177,7 @@ resource "aws_lambda_function" "killswitch" {
       PROJECT         = var.project
       SCOPE           = var.kill_scope
       DISTRIBUTION_ID = aws_cloudfront_distribution.app.id
-      ALERT_TOPIC_ARN = aws_sns_topic.alerts.arn
+      ALERT_TOPIC_ARN = aws_sns_topic.kill[0].arn # report goes to the same email subscription
       HOME_REGION     = var.region
     }
   }
@@ -165,15 +185,17 @@ resource "aws_lambda_function" "killswitch" {
 }
 
 resource "aws_lambda_permission" "sns" {
+  count         = local.ks
   statement_id  = "AllowKillTopic"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.killswitch.function_name
+  function_name = aws_lambda_function.killswitch[0].function_name
   principal     = "sns.amazonaws.com"
-  source_arn    = aws_sns_topic.kill.arn
+  source_arn    = aws_sns_topic.kill[0].arn
 }
 
 resource "aws_sns_topic_subscription" "kill_lambda" {
-  topic_arn = aws_sns_topic.kill.arn
+  count     = local.ks
+  topic_arn = aws_sns_topic.kill[0].arn
   protocol  = "lambda"
-  endpoint  = aws_lambda_function.killswitch.arn
+  endpoint  = aws_lambda_function.killswitch[0].arn
 }
