@@ -1,0 +1,34 @@
+#!/bin/bash
+# First-boot bootstrap (Amazon Linux 2023, arm64). Everything app-specific lives in the
+# release tarball (infra/server/*), so this file stays small and rarely changes.
+set -euxo pipefail
+exec > >(tee -a /var/log/soc-bootstrap.log) 2>&1
+
+# 4 GB swap: 1 GB RAM is enough to run, not to build images or launch Chromium comfortably.
+if [ ! -f /swapfile ]; then
+  dd if=/dev/zero of=/swapfile bs=1M count=4096
+  chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+dnf install -y docker tar gzip
+systemctl enable --now docker
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-aarch64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/soc/data /opt/soc/pgdata
+cat > /opt/soc/instance.env <<EOF
+BUCKET=${bucket}
+AWS_REGION=${region}
+AWS_DEFAULT_REGION=${region}
+SSM_PREFIX=${ssm_prefix}
+PUBLIC_URL=${public_url}
+EOF
+
+# Fetch the current release and run its deploy script (restores the latest backup, or seeds).
+aws s3 cp "s3://${bucket}/releases/latest.tar.gz" /opt/soc/release.tar.gz --region ${region}
+rm -rf /opt/soc/src && mkdir -p /opt/soc/src
+tar -xzf /opt/soc/release.tar.gz -C /opt/soc/src
+bash /opt/soc/src/infra/server/deploy.sh

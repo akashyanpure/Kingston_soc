@@ -1,0 +1,43 @@
+# Runs on the EC2 server. Images are built by deploy.sh; secrets come from /opt/soc/app.env.
+name: soc
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: soc-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: soc
+      POSTGRES_DB: soc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Small-memory tuning for a 1 GB server.
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=40", "-c", "work_mem=4MB", "-c", "maintenance_work_mem=32MB"]
+    volumes:
+      - /opt/soc/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soc -d soc"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  api:
+    image: soc-api:latest
+    container_name: soc-api
+    restart: unless-stopped
+    env_file: /opt/soc/app.env
+    volumes:
+      - /opt/soc/data:/data
+    shm_size: 256m # Chromium
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: soc-web:latest
+    container_name: soc-web
+    restart: unless-stopped
+    environment:
+      ORIGIN_SECRET: ${ORIGIN_SECRET}
+    ports:
+      - "80:80"
+    depends_on:
+      - api

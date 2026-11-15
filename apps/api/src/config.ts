@@ -32,6 +32,8 @@ const EnvSchema = z.object({
   PDF_WORKER: bool.default(true),
   PDF_POLL_MS: z.coerce.number().int().min(100).default(2000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  /** Number of reverse-proxy hops to trust for X-Forwarded-For (cloud: CloudFront + Caddy = 2). 0 = off. */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
 });
 
 export interface Config {
@@ -49,6 +51,7 @@ export interface Config {
   pdfWorker: boolean;
   pdfPollMs: number;
   logLevel: string;
+  trustProxyHops: number;
 }
 
 const fromRoot = (p: string) => (isAbsolute(p) ? p : resolve(REPO_ROOT, p));
@@ -75,6 +78,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     pdfWorker: e.PDF_WORKER,
     pdfPollMs: e.PDF_POLL_MS,
     logLevel: e.LOG_LEVEL,
+    trustProxyHops: e.TRUST_PROXY_HOPS,
   };
 }
 
@@ -95,6 +99,7 @@ export function testConfig(over: Partial<Config> = {}): Config {
     pdfWorker: false,
     pdfPollMs: 2000,
     logLevel: 'silent',
+    trustProxyHops: 0,
     ...over,
   };
 }

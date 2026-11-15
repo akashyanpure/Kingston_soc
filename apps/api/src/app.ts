@@ -40,7 +40,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<App> {
   const app = Fastify({
     logger: opts.config.logLevel === 'silent' ? false : { level: opts.config.logLevel, redact: ['req.headers.cookie', 'req.headers.authorization'] },
     bodyLimit: 8 * 1024 * 1024, // sync batches + signature images
-    trustProxy: false,
+    // Cloud: CloudFront → Caddy → API, so trust exactly that many X-Forwarded-For hops (never `true`).
+    // Trust only the first N hops (0 = none), i.e. the hop-count semantics of proxy-addr.
+    trustProxy: (_address: string, hop: number) => hop < opts.config.trustProxyHops,
   });
 
   await app.register(cookie, { secret: opts.config.sessionSecret });

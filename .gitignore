@@ -10,3 +10,11 @@ coverage/
 playwright-report/
 test-results/
 .vite/
+
+# Terraform (state holds secrets; per-machine settings)
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/terraform.tfvars
+infra/**/app_origin.auto.tfvars
+infra/**/.build/

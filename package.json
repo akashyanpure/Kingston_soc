@@ -15,7 +15,18 @@
     "db:generate": "pnpm --filter @soc/db generate",
     "db:migrate": "pnpm --filter @soc/db migrate",
     "db:seed": "pnpm --filter @soc/db seed",
-    "db:reset": "pnpm --filter @soc/db reset"
+    "db:reset": "pnpm --filter @soc/db reset",
+    "cloud:init": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 init",
+    "cloud:up": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 up",
+    "cloud:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 deploy",
+    "cloud:down": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 down",
+    "cloud:status": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 status",
+    "cloud:cost": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 cost",
+    "cloud:backup": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 backup",
+    "cloud:logs": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 logs",
+    "cloud:users": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 users",
+    "cloud:killtest": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 killtest",
+    "cloud:nuke": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/soc.ps1 nuke"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

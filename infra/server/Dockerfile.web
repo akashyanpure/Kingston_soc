@@ -1,0 +1,12 @@
+# Web app (PWA) built with Vite, served by Caddy, which also proxies /api to the API.
+FROM node:26-bookworm-slim AS build
+ENV CI=true
+RUN npm install -g pnpm@10.34.9
+WORKDIR /app
+COPY . .
+RUN pnpm install --frozen-lockfile --filter kingston-soc --filter "@soc/web..." \
+ && pnpm --filter @soc/web build
+
+FROM caddy:2-alpine
+COPY infra/server/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/apps/web/dist /srv

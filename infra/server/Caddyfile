@@ -1,0 +1,30 @@
+{
+	auto_https off
+	admin off
+	servers {
+		# Only CloudFront can reach :80 (security group + secret header), so its
+		# X-Forwarded-For is trustworthy; Caddy appends CloudFront's address to it.
+		trusted_proxies static 0.0.0.0/0 ::/0
+	}
+}
+
+:80 {
+	# Reject anything that did not come through our CloudFront distribution.
+	@notCloudFront not header X-Origin-Verify {$ORIGIN_SECRET}
+	respond @notCloudFront "Forbidden" 403
+
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		root * /srv
+		# The service worker and app shell must never be cached stale.
+		@noCache path /sw.js /index.html /manifest.webmanifest /
+		header @noCache Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
