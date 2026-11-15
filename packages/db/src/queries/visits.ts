@@ -140,6 +140,18 @@ export async function ensureRoomItems(tx: Db, roomInstanceId: string, opts: { up
 }
 
 /**
+ * Select map producing the shared `Signature` shape (after serializeRow): image key, ip and
+ * user agent stay server-side; hasImage = image_storage_key is not null.
+ */
+export const signatureColumns = {
+  id: signatures.id, visitId: signatures.visitId, reportId: signatures.reportId, role: signatures.role,
+  name: signatures.name, method: signatures.method, signedAt: signatures.signedAt,
+  contentSha256: signatures.contentSha256, reportSha256: signatures.reportSha256,
+  hasImage: sql<boolean>`(${signatures.imageStorageKey} is not null)`.mapWith(Boolean),
+  updatedAt: signatures.updatedAt, updatedBy: signatures.updatedBy,
+};
+
+/**
  * Everything the device needs for one visit (GET /visits/:id, POST /visits response).
  * Soft-deleted rows are excluded. Returns null if the visit does not exist or is soft-deleted.
  * The result has been validated with the shared `VisitBundle` zod schema.
@@ -167,9 +179,7 @@ export async function loadVisitBundle(db: Db, visitId: string): Promise<VisitBun
   ]);
   if (!property) throw new Error(`property ${visit.propertyId} missing for visit ${visitId}`);
   const [landlord] = property.landlordId ? await db.select().from(landlords).where(eq(landlords.id, property.landlordId)) : [];
-  const sigs = report
-    ? await db.select().from(signatures).where(eq(signatures.reportId, report.id)).orderBy(asc(signatures.signedAt))
-    : [];
+  const sigs = await db.select(signatureColumns).from(signatures).where(live(signatures)).orderBy(asc(signatures.signedAt), asc(signatures.id));
 
   return VisitBundle.parse({
     visit: serializeRow(visit),

@@ -301,22 +301,30 @@ export const reports = pgTable('reports', {
   issuedBy: uuid().notNull().references(() => users.id),
 });
 
+/** Device-writable (sync entity 'signature') until the visit is issued; captured BEFORE issue. */
 export const signatures = pgTable(
   'signatures',
   {
     id: uuid().primaryKey(),
-    reportId: uuid().notNull().references(() => reports.id),
+    visitId: uuid().notNull().references(() => visits.id, { onDelete: 'cascade' }),
+    reportId: uuid().references(() => reports.id), // set by the issue transaction
     role: signatureRolesEnum().notNull(),
     name: text().notNull(),
     method: signatureMethodsEnum().notNull(),
     signedAt: tstz().notNull().defaultNow(),
+    contentSha256: text(), // visitContentHash() of what was signed
     reportSha256: text(),
-    imageStorageKey: text(),
+    imageStorageKey: text(), // hasImage = image_storage_key is not null
     ip: inet(),
     userAgent: text(),
-    createdAt: createdAt(),
+    ...syncColumns(),
   },
-  (t) => [uniqueIndex('signatures_report_role_uq').on(t.reportId, t.role)],
+  (t) => [
+    index('signatures_visit_idx').on(t.visitId),
+    uniqueIndex('signatures_visit_role_on_device_uq')
+      .on(t.visitId, t.role)
+      .where(sql`method = 'on_device' and deleted_at is null`),
+  ],
 );
 
 export const reportNumberSeq = pgTable('report_number_seq', {

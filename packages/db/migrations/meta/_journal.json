@@ -15,6 +15,20 @@
       "when": 1794755692196,
       "tag": "0001_constraints_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794757281115,
+      "tag": "0002_signatures_on_device",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794757289124,
+      "tag": "0003_signatures_immutability",
+      "breakpoints": true
     }
   ]
 }

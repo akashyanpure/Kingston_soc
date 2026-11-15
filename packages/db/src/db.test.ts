@@ -4,7 +4,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { VisitBundle, VisitSummary, buildFormDefinition, type CreateVisitRequest } from '@soc/shared';
 import { createTestDb, type Db, type TestDbHandle } from './client.js';
-import { isImmutableError } from './errors.js';
+import { isImmutableError, isUniqueViolation } from './errors.js';
 import { claimNextJob, completeJob, enqueueJob, failJob } from './queries/jobs.js';
 import { allocateReportNumber } from './queries/reports.js';
 import { createVisitFromForm, ensureRoomItems, getPublishedFormVersion, listVisits, loadVisitBundle } from './queries/visits.js';
@@ -42,6 +42,7 @@ async function issue(visitId: string, number: string) {
   return db.transaction(async (tx) => {
     const reportId = uuidv7();
     await tx.insert(s.reports).values({ id: reportId, visitId, reportNumber: number, snapshot: { ok: true }, issuedBy: officerId });
+    await tx.update(s.signatures).set({ reportId, updatedAt: new Date() }).where(eq(s.signatures.visitId, visitId));
     await tx.update(s.visits).set({ status: 'issued', reportNumber: number, updatedAt: new Date() }).where(eq(s.visits.id, visitId));
     return reportId;
   });
@@ -64,7 +65,7 @@ describe('migrations + seed', () => {
     const ext = await h.client.query(`select extname from pg_extension where extname = 'pg_trgm'`);
     expect(ext.rows).toHaveLength(1);
     const trg = await h.client.query<{ n: number }>(`select count(*)::int as n from pg_trigger where tgname like '%_immutable'`);
-    expect(trg.rows[0]!.n).toBe(9);
+    expect(trg.rows[0]!.n).toBe(10);
     const fk = await h.client.query<{ condeferrable: boolean }>(
       `select condeferrable from pg_constraint where conname in ('room_instances_wide_photo_id_photos_id_fk','meter_readings_photo_id_photos_id_fk')`);
     expect(fk.rows.map((r) => r.condeferrable)).toEqual([true, true]);
@@ -204,6 +205,41 @@ describe('immutability triggers', () => {
     const bundle = await loadVisitBundle(db, id);
     expect(bundle!.report).toMatchObject({ reportNumber: 'SOC-2026-9002', pdfReady: true });
     expect(bundle!.visit.status).toBe('issued');
+  });
+
+  it('signatures: device-writable before issue, link-only inserts after, bundle shape', async () => {
+    const id = await newVisit();
+    const sig = (over: Partial<typeof s.signatures.$inferInsert> = {}) => ({
+      id: uuidv7(), visitId: id, role: 'landlord_agent' as const, name: 'L. Lord', method: 'on_device' as const,
+      signedAt: new Date('2026-11-16T10:00:00Z'), contentSha256: 'd'.repeat(64), updatedBy: officerId, ...over,
+    });
+    const landlord = sig({ imageStorageKey: `signatures/${id}/ll.png` });
+    await db.insert(s.signatures).values(landlord);
+    // one on-device signature per role per visit; re-sign = UPDATE
+    const dup = await db.insert(s.signatures).values(sig()).then(() => null, (e: unknown) => e);
+    expect(isUniqueViolation(dup)).toBe(true);
+    await db.update(s.signatures).set({ name: 'L. Lord (agent)' }).where(eq(s.signatures.id, landlord.id));
+    const officerSig = sig({ role: 'officer', name: 'J. Patel' });
+    await db.insert(s.signatures).values(officerSig);
+
+    const reportId = await issue(id, 'SOC-2026-9003');
+    const [linked] = await db.select().from(s.signatures).where(eq(s.signatures.id, landlord.id));
+    expect(linked!.reportId).toBe(reportId);
+
+    await expectImmutable(() => db.update(s.signatures).set({ name: 'x' }).where(eq(s.signatures.id, landlord.id)));
+    await expectImmutable(() => db.delete(s.signatures).where(eq(s.signatures.id, officerSig.id)));
+    await expectImmutable(() => db.insert(s.signatures).values(sig({ role: 'tenant_check_in' })));
+    await db.insert(s.signatures).values(sig({ role: 'tenant_check_in', method: 'link', reportId }));
+
+    const bundle = await loadVisitBundle(db, id);
+    expect(bundle!.signatures).toHaveLength(3);
+    const ll = bundle!.signatures.find((x) => x.id === landlord.id)!;
+    expect(ll).toEqual({
+      id: landlord.id, visitId: id, reportId, role: 'landlord_agent', name: 'L. Lord (agent)', method: 'on_device',
+      signedAt: '2026-11-16T10:00:00.000Z', contentSha256: 'd'.repeat(64), reportSha256: null, hasImage: true,
+      updatedAt: ll.updatedAt, updatedBy: officerId,
+    });
+    expect(bundle!.signatures.find((x) => x.id === officerSig.id)!.hasImage).toBe(false);
   });
 
   it('deferrable photo FK: a room may reference a photo inserted later in the same tx', async () => {
