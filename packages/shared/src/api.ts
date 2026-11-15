@@ -26,7 +26,9 @@
  * | GET    | /visits/:id/preview               | owner/manager | —                    | text/html (draft report)    |
  * | GET    | /reports/:id                      | owner/manager | —                    | { report, signatures }      |
  * | GET    | /reports/:id/pdf                  | owner/manager | —                    | application/pdf (202 if rendering) |
- * | POST   | /reports/:id/signatures           | owner/manager | SignRequest          | { signature: Signature }    |
+ * | (sync) | entity 'signature' via /sync/push  | owner    | on-device e-signature BEFORE issue: Signature fields + write-only imageDataUrl (SignatureImageDataUrl); insert-only, contentSha256 must equal visitContentHash(current bundle) at issue | — |
+ * | GET    | /signatures/:id/image             | owner/manager | —                    | image/png                   |
+ * | POST   | /reports/:id/signatures           | (future)  | SignRequest — method 'link' only, after issue, for a party who was absent; not printed in the issued PDF | { signature } |
  * | POST   | /reports/:id/notes                | owner/manager | NoteRequest (post-issue, append-only) | { note }   |
  * | GET    | /properties?q=                    | any      | search address/postcode/UPRN | { properties: PropertyWithLandlord[] } |
  * | POST   | /properties                       | officer+ | CreatePropertyRequest     | { property }                |
@@ -85,8 +87,7 @@ export type CreateVisitRequest = z.infer<typeof CreateVisitRequest>;
 export const SignRequest = z.object({
   role: z.enum(SIGNATURE_ROLES),
   name: z.string().min(1),
-  method: z.enum(SIGNATURE_METHODS),
-  /** PNG data URL of the finger signature, for method on_device. */
+  method: z.enum(SIGNATURE_METHODS).refine((m) => m === 'link', 'Post-issue signatures must use method "link"; on-device signatures are synced before issue'),
   imageDataUrl: z.string().startsWith('data:image/png;base64,').optional(),
 });
 export type SignRequest = z.infer<typeof SignRequest>;

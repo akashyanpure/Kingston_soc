@@ -202,16 +202,32 @@ export const Report = z.object({
 });
 export type Report = z.infer<typeof Report>;
 
+const zSha256 = z.string().regex(/^[a-f0-9]{64}$/);
+
+/**
+ * Signatures belong to the VISIT (decision 2026-11-15: e-signatures captured on the device before
+ * issue and printed in the PDF). On-device signatures are created offline and synced like other
+ * visit rows (entity 'signature'); `contentSha256` is visitContentHash() of the draft the person
+ * signed. At issue the server links them to the report (reportId). A later 'link' signature
+ * (absent party, future phase) is created server-side after issue with reportSha256 = PDF hash.
+ */
 export const Signature = z.object({
   id: zId,
-  reportId: zId,
+  visitId: zId,
+  reportId: zId.nullable(),
   role: z.enum(SIGNATURE_ROLES),
   name: z.string().min(1),
   method: z.enum(SIGNATURE_METHODS),
   signedAt: zTime,
-  reportSha256: z.string().nullable(),
+  contentSha256: zSha256.nullable(),
+  reportSha256: zSha256.nullable(),
+  hasImage: z.boolean(), // PNG stored server-side; GET /api/signatures/:id/image
+  ...syncMeta,
 });
 export type Signature = z.infer<typeof Signature>;
+
+/** Write-only field accepted in a 'signature' push mutation: the finger signature as a PNG data URL. */
+export const SignatureImageDataUrl = z.string().startsWith('data:image/png;base64,').max(400_000);
 
 /** Everything the device needs to work on one visit offline. */
 export const VisitBundle = z.object({

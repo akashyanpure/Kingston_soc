@@ -29,7 +29,13 @@ export type FormVersionStatus = (typeof FORM_VERSION_STATUSES)[number];
 export const SIGNATURE_ROLES = ['landlord_agent', 'officer', 'tenant_check_in', 'tenant_check_out'] as const;
 export type SignatureRole = (typeof SIGNATURE_ROLES)[number];
 
-export const SIGNATURE_METHODS = ['on_device', 'link', 'wet', 'officer_only'] as const;
+/**
+ * E-signatures only (user, 2026-11-15) — no wet-signature route.
+ * on_device: finger signature on the officer's phone at the review step, BEFORE issue; printed in the PDF.
+ * link: (later phase) a party who was absent signs the issued report via an expiring link; recorded
+ *       against the PDF hash and shown in the online record, not in the already-issued PDF.
+ */
+export const SIGNATURE_METHODS = ['on_device', 'link'] as const;
 export type SignatureMethod = (typeof SIGNATURE_METHODS)[number];
 
 /** All four schemes use the same form (decision 5). Display name drives cover + declaration (decision 6). */
@@ -52,6 +58,7 @@ export const SYNC_ENTITIES = [
   'item_record',
   'photo',
   'additional_note',
+  'signature', // on-device signatures, captured before issue (insert-only from the device)
 ] as const;
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 

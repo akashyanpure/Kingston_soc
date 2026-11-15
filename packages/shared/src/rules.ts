@@ -3,8 +3,8 @@
  * state) and the server (POST /api/visits/:id/issue). Drafts may be incomplete;
  * these rules only gate issuing the report.
  */
-import { DEFECT_CONDITIONS } from './enums.js';
-import type { ItemRecord, Photo, RoomInstance, VisitGeneral } from './schemas.js';
+import { DEFECT_CONDITIONS, type VisitType } from './enums.js';
+import type { ItemRecord, Photo, RoomInstance, Signature, VisitGeneral } from './schemas.js';
 
 export type BlockerCode =
   | 'NO_ROOMS_PRESENT'
@@ -16,7 +16,13 @@ export type BlockerCode =
   | 'GENERAL_MISSING'
   /** Server-side only check (apps/api serverIssueBlockers): a live photo whose file hasn't reached the server.
    *  The issue transaction locks the visit, after which photo uploads are rejected, so every photo must be uploaded first. */
-  | 'PHOTO_NOT_UPLOADED';
+  | 'PHOTO_NOT_UPLOADED'
+  /** The officer must e-sign the draft before issue. */
+  | 'OFFICER_SIGNATURE_MISSING'
+  /** The content changed after this person signed — they must sign again. */
+  | 'SIGNATURE_STALE'
+  /** Tenant check-in signature on a non check-in visit, or check-out on a non check-out visit. */
+  | 'SIGNATURE_ROLE_INVALID';
 
 export interface Blocker {
   code: BlockerCode;
@@ -24,6 +30,7 @@ export interface Blocker {
   roomInstanceId?: string;
   itemRecordId?: string;
   photoId?: string;
+  signatureId?: string;
 }
 
 export interface IssueInput {
@@ -31,12 +38,37 @@ export interface IssueInput {
   items: ItemRecord[];
   photos: Photo[];
   general: VisitGeneral[];
+  /** Signature rules: pass the visit's signatures, its type and visitContentHash() of the current content. */
+  signatures: Signature[];
+  visitType: VisitType;
+  contentSha256: string;
+}
+
+/**
+ * Signature requirements (decision 2026-11-15, e-signatures before issue):
+ * - the Private Sector Schemes Officer must sign; landlord/agent and tenant are optional
+ *   (an absent party is shown as "Not signed" and can sign the issued report later by link);
+ * - every on-device signature must match the current content hash (else re-sign);
+ * - tenant_check_in only on check-in visits, tenant_check_out only on check-out visits.
+ */
+export function signatureBlockers(signatures: Signature[], visitType: VisitType, contentSha256: string): Blocker[] {
+  const out: Blocker[] = [];
+  const onDevice = signatures.filter((s) => s.method === 'on_device');
+  if (!onDevice.some((s) => s.role === 'officer'))
+    out.push({ code: 'OFFICER_SIGNATURE_MISSING', message: 'The officer must sign before the report is issued.' });
+  for (const s of onDevice) {
+    if (s.contentSha256 !== contentSha256)
+      out.push({ code: 'SIGNATURE_STALE', message: `${s.name} signed an earlier version — ask them to sign again.`, signatureId: s.id });
+    if ((s.role === 'tenant_check_in' && visitType !== 'check_in') || (s.role === 'tenant_check_out' && visitType !== 'check_out'))
+      out.push({ code: 'SIGNATURE_ROLE_INVALID', message: `${s.name}: tenant signature does not match this visit type.`, signatureId: s.id });
+  }
+  return out;
 }
 
 /** General-schedule fields that must be filled before issue. */
 export const REQUIRED_GENERAL = ['DESCRIPTION_OF_PROPERTY', 'GENERAL_CONDITION'] as const;
 
-export function issueBlockers({ rooms, items, photos, general }: IssueInput): Blocker[] {
+export function issueBlockers({ rooms, items, photos, general, signatures, visitType, contentSha256 }: IssueInput): Blocker[] {
   const blockers: Blocker[] = [];
   const present = rooms.filter((r) => r.present);
   const presentIds = new Set(present.map((r) => r.id));
@@ -74,6 +106,8 @@ export function issueBlockers({ rooms, items, photos, general }: IssueInput): Bl
       if (!photosByItem.get(item.id)) blockers.push({ code: 'DEFECT_NO_PHOTO', message: `${name}: photo required.`, ...where });
     }
   }
+  // Content blockers first: signing is the last step, so only check signatures once the content is complete.
+  if (blockers.length === 0) blockers.push(...signatureBlockers(signatures, visitType, contentSha256));
   return blockers;
 }
 
