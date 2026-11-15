@@ -9,6 +9,8 @@ import { sql } from 'drizzle-orm';
 import type { Db } from '@soc/db';
 import type { Mailer } from './adapters/mail.js';
 import type { Storage } from './adapters/storage.js';
+import { createAddressLookup } from './adapters/address/index.js';
+import type { AddressLookup } from './adapters/address/index.js';
 import { registerAuth } from './auth/index.js';
 import type { Config } from './config.js';
 import type { AppContext } from './context.js';
@@ -16,6 +18,9 @@ import { registerErrorHandler } from './errors.js';
 import { ChromiumPdfRenderer } from './pdf/renderer.js';
 import type { PdfRenderer } from './pdf/renderer.js';
 import { PdfWorker } from './pdf/worker.js';
+import { addressRoutes } from './routes/address.js';
+import { adminRoutes } from './routes/admin.js';
+import { manageRoutes } from './routes/manage.js';
 import { photoRoutes } from './routes/photos.js';
 import { propertyRoutes } from './routes/properties.js';
 import { referenceRoutes } from './routes/reference.js';
@@ -31,12 +36,14 @@ export interface BuildAppOptions {
   config: Config;
   /** Defaults to Playwright Chromium. */
   pdf?: PdfRenderer;
+  /** Defaults to the provider in config (ADDRESS_PROVIDER). */
+  address?: AddressLookup;
 }
 
 export type App = FastifyInstance & { ctx: AppContext; pdfWorker: PdfWorker };
 
 export async function buildApp(opts: BuildAppOptions): Promise<App> {
-  const ctx: AppContext = { db: opts.db, storage: opts.storage, mail: opts.mail, config: opts.config, pdf: opts.pdf ?? new ChromiumPdfRenderer() };
+  const ctx: AppContext = { db: opts.db, storage: opts.storage, mail: opts.mail, config: opts.config, pdf: opts.pdf ?? new ChromiumPdfRenderer(), address: opts.address ?? createAddressLookup(opts.config) };
   const app = Fastify({
     logger: opts.config.logLevel === 'silent' ? false : { level: opts.config.logLevel, redact: ['req.headers.cookie', 'req.headers.authorization'] },
     bodyLimit: 8 * 1024 * 1024, // sync batches + signature images
@@ -70,6 +77,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<App> {
       signatureImageRoutes(api, ctx);
       propertyRoutes(api, ctx);
       userRoutes(api, ctx);
+      manageRoutes(api, ctx);
+      adminRoutes(api, ctx);
+      addressRoutes(api, ctx);
     },
     { prefix: '/api' },
   );

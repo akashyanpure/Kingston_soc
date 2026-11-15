@@ -1,4 +1,5 @@
 import type { Db } from '@soc/db';
+import type { AddressLookup } from './adapters/address/index.js';
 import type { Mailer } from './adapters/mail.js';
 import type { Storage } from './adapters/storage.js';
 import type { Config } from './config.js';
@@ -11,6 +12,7 @@ export interface AppContext {
   mail: Mailer;
   config: Config;
   pdf: PdfRenderer;
+  address: AddressLookup;
   /** Wake the PDF worker right away (set when the worker runs in-process). */
   pdfWorkerKick?: () => void;
 }

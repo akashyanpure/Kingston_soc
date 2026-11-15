@@ -6,6 +6,8 @@
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import { ADDRESS_PROVIDERS } from '@soc/shared';
+import type { AddressProvider } from '@soc/shared';
 
 export const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -34,7 +36,10 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   /** Number of reverse-proxy hops to trust for X-Forwarded-For (cloud: CloudFront + Caddy = 2). 0 = off. */
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
-});
+  /** Postcode/address lookup provider (packages/shared/src/address.ts). */
+  ADDRESS_PROVIDER: z.enum(ADDRESS_PROVIDERS).default('postcodes_io'),
+  OS_PLACES_API_KEY: z.string().optional(),
+}).refine((e) => e.ADDRESS_PROVIDER !== 'os_places' || !!e.OS_PLACES_API_KEY, { message: 'OS_PLACES_API_KEY is required when ADDRESS_PROVIDER=os_places', path: ['OS_PLACES_API_KEY'] });
 
 export interface Config {
   nodeEnv: 'development' | 'test' | 'production';
@@ -52,6 +57,8 @@ export interface Config {
   pdfPollMs: number;
   logLevel: string;
   trustProxyHops: number;
+  addressProvider: AddressProvider;
+  osPlacesApiKey: string | null;
 }
 
 const fromRoot = (p: string) => (isAbsolute(p) ? p : resolve(REPO_ROOT, p));
@@ -79,6 +86,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     pdfPollMs: e.PDF_POLL_MS,
     logLevel: e.LOG_LEVEL,
     trustProxyHops: e.TRUST_PROXY_HOPS,
+    addressProvider: e.ADDRESS_PROVIDER,
+    osPlacesApiKey: e.OS_PLACES_API_KEY || null,
   };
 }
 
@@ -100,6 +109,8 @@ export function testConfig(over: Partial<Config> = {}): Config {
     pdfPollMs: 2000,
     logLevel: 'silent',
     trustProxyHops: 0,
+    addressProvider: 'none',
+    osPlacesApiKey: null,
     ...over,
   };
 }

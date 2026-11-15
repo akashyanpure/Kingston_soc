@@ -15,6 +15,7 @@ import { testConfig } from '../src/config.js';
 import type { Config } from '../src/config.js';
 import { FakePdfRenderer } from '../src/pdf/renderer.js';
 import type { PdfRenderer } from '../src/pdf/renderer.js';
+import type { AddressLookup } from '../src/adapters/address/index.js';
 
 export interface TestApp {
   app: App;
@@ -25,7 +26,7 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-export async function setup(config: Partial<Config> = {}, renderer?: PdfRenderer): Promise<TestApp> {
+export async function setup(config: Partial<Config> = {}, renderer?: PdfRenderer, extra: { address?: AddressLookup } = {}): Promise<TestApp> {
   const handle = await createTestDb({ seed: true });
   // The seed has a single officer; add a second one to test that officers only see their own visits.
   await handle.db.insert(users).values({
@@ -34,7 +35,7 @@ export async function setup(config: Partial<Config> = {}, renderer?: PdfRenderer
   const storage = new MemoryStorage();
   const mail = new MemoryMailer();
   const pdf = new FakePdfRenderer();
-  const app = await buildApp({ db: handle.db, storage, mail, pdf: renderer ?? pdf, config: testConfig(config) });
+  const app = await buildApp({ db: handle.db, storage, mail, pdf: renderer ?? pdf, config: testConfig(config), ...(extra.address ? { address: extra.address } : {}) });
   await app.ready();
   return { app, handle, storage, mail, pdf, close: async () => { await app.close(); await handle.close(); } };
 }

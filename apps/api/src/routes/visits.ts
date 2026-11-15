@@ -10,7 +10,7 @@ import { renderReportHtml } from '@soc/report';
 import { CreateVisitRequest, Visit, VisitListQuery, visitContentHash, zId, zTime } from '@soc/shared';
 import { assertCanAccessVisit, isManager, requireRole, requireUser } from '../auth/index.js';
 import type { AppContext } from '../context.js';
-import { badRequest, conflict, notFound, parse } from '../errors.js';
+import { badRequest, conflict, forbidden, notFound, parse } from '../errors.js';
 import { IssueBlockedError, issueVisit, serverIssueBlockers } from '../services/issue.js';
 import type { StoredSnapshot } from '../services/issue.js';
 import { getFormDefinition, getSchemeName, getUserName, getVisitForUser } from '../services/visits.js';
@@ -41,6 +41,15 @@ export function visitRoutes(app: FastifyInstance, ctx: AppContext): void {
       return reply.code(200).send(await loadVisitBundle(ctx.db, body.id));
     }
 
+    // Managers/admins may schedule a visit for an officer; officers always create their own.
+    let officerId = user.id;
+    if (body.officerId && body.officerId !== user.id) {
+      if (!isManager(user)) throw forbidden('Officers can only create visits for themselves.');
+      const [target] = await ctx.db.select({ role: users.role, active: users.active }).from(users).where(eq(users.id, body.officerId)).limit(1);
+      if (!target || !target.active || target.role !== 'officer') throw badRequest('officerId must be an active officer.');
+      officerId = body.officerId;
+    }
+
     const [property] = await ctx.db.select({ id: properties.id }).from(properties).where(eq(properties.id, body.propertyId)).limit(1);
     if (!property) throw notFound('Property');
     if (body.tenancyId) {
@@ -52,7 +61,7 @@ export function visitRoutes(app: FastifyInstance, ctx: AppContext): void {
     if (!form) throw conflict('NO_PUBLISHED_FORM', 'No published form version. Run the database seed.');
     try {
       await ctx.db.transaction(async (tx) => {
-        await createVisitFromForm(tx as unknown as Db, body, user.id, form);
+        await createVisitFromForm(tx as unknown as Db, body, officerId, form);
       });
     } catch (err) {
       if (err instanceof UnknownRoomCodeError) throw badRequest(err.message, { codes: err.codes });
