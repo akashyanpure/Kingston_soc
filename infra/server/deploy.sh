@@ -27,6 +27,8 @@ TRUST_PROXY_HOPS=2
 LOG_LEVEL=info
 # Postcode lookup: postcodes_io (free). Switch to os_places + OS_PLACES_API_KEY with the council's PSGA access.
 ADDRESS_PROVIDER=postcodes_io
+# Public address used in emailed signing links (https://<cloudfront>/sign/<token>).
+PUBLIC_URL=${PUBLIC_URL}
 EOF
 umask 022
 
