@@ -161,14 +161,30 @@ function Invoke-Remote($instanceId, [string[]]$lines, [int]$timeoutSec = 1800) {
 
 # -- Web app: built on this PC, served by CloudFront from S3 (no server involved) --
 function Deploy-Web($g) {
+  # Build from the LAST COMMIT in a separate worktree, so unfinished edits in the working
+  # folder never ship (same rule as the API). pnpm's shared store makes the install fast.
+  $wt = Join-Path $env:TEMP 'soc-web-build'
   Push-Location $Root
   try {
-    $dirty = git status --porcelain -- apps/web packages/shared packages/report
-    if ($dirty) { Write-Host 'NOTE: the web build includes uncommitted changes in apps/web, shared or report.' -ForegroundColor Yellow }
-    Say 'web: building locally'
-    & $PNPM --filter @soc/web build | Out-Null
-    if ($LASTEXITCODE -ne 0) { Fail 'web build failed (run: pnpm --filter @soc/web build)' }
-    $dist = Join-Path $Root 'apps\web\dist'
+    $sha = (git rev-parse --short HEAD).Trim()
+    Say "web: building commit $sha"
+    if (Test-Path (Join-Path $wt '.git')) {
+      git -C $wt checkout --quiet --detach --force HEAD 2>$null
+      if ($LASTEXITCODE -ne 0) { git -C $wt checkout --quiet --detach --force $sha }
+    } else {
+      git worktree prune
+      git worktree add --quiet --detach --force $wt HEAD
+      if ($LASTEXITCODE -ne 0) { Fail 'could not create the build worktree' }
+    }
+    git -C $wt checkout --quiet --detach --force $sha
+    Push-Location $wt
+    try {
+      & $PNPM install --frozen-lockfile --prefer-offline --filter kingston-soc --filter '@soc/web...' --reporter=silent
+      if ($LASTEXITCODE -ne 0) { Fail 'web dependency install failed' }
+      & $PNPM --filter @soc/web build | Out-Null
+      if ($LASTEXITCODE -ne 0) { Fail 'web build failed' }
+    } finally { Pop-Location }
+    $dist = Join-Path $wt 'apps\web\dist'
     Say 'web: uploading to S3'
     # Hashed assets: cache for a year. Everything else (index.html, sw.js, manifest, icons): always revalidate.
     & $AWS s3 sync "$dist\assets" "s3://$($g.Bucket)/web/assets" --exclude '*.map' --cache-control 'public,max-age=31536000,immutable' --only-show-errors
@@ -176,7 +192,7 @@ function Deploy-Web($g) {
     & $AWS s3 sync $dist "s3://$($g.Bucket)/web" --delete --exclude 'assets/*' --exclude '*.map' --cache-control 'no-cache' --only-show-errors
     if ($LASTEXITCODE -ne 0) { Fail 'web upload failed' }
     & $AWS cloudfront create-invalidation --distribution-id $g.Dist --paths '/*' --output text | Out-Null
-    Write-Host 'web: live (CloudFront refresh ~30-60 s; installed apps update on next open)'
+    Write-Host "web: $sha live (CloudFront refresh ~30-60 s; installed apps update on next open)"
   } finally { Pop-Location }
 }
 
