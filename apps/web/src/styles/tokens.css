@@ -1,0 +1,52 @@
+/* Design tokens — soc-template-form decision 7 (prototype "Kingston retone" of Industry). */
+:root {
+  /* type */
+  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --weight-heading: 600;
+
+  /* brand */
+  --teal: #17708c;
+  --teal-hover: #14657f;
+  --deep-700: #0f5568;
+  --deep-800: #0b3d4c;
+  --deep-900: #072932;
+  --tint-200: #cfe8ef;
+  --tint-100: #eaf5f8;
+
+  /* neutrals */
+  --text: #1d1f20;
+  --muted: #5d5d60;
+  --rule: #e0e1e3;
+  --page: #f8f8f9;
+  --ground: #f2f2f3;
+  --surface: #e9e9ea;
+  --white: #ffffff;
+  --on-dark: #f2f2f3;
+  --divider: rgba(29, 31, 32, 0.16);
+  --divider-soft: rgba(29, 31, 32, 0.08);
+  --hover: rgba(29, 31, 32, 0.07);
+  --stripe-a: #d9dade;
+  --stripe-b: #ececed;
+
+  /* grade pills: background / foreground */
+  --grade-g-bg: #cfe8ef; --grade-g-fg: #0b3d4c;
+  --grade-f-bg: #6fb4c9; --grade-f-fg: #072932;
+  --grade-p-bg: #0f5568; --grade-p-fg: #f2f2f3;
+  --grade-u-bg: #072932; --grade-u-fg: #f2f2f3;
+  --grade-na-bg: #e0e1e3; --grade-na-fg: #5d5d60;
+
+  /* layout */
+  --space-1: 4px;
+  --space-2: 7px;
+  --space-3: 10px;
+  --space-4: 14px;
+  --space-6: 20px;
+  --space-8: 28px;
+  --radius: 0;
+  --target: 44px; /* WCAG 2.2 target size; we go above the 24px AA minimum */
+  --gutter: 16px;
+  --phone-max: 520px;
+  --focus: 2px solid var(--teal);
+}
