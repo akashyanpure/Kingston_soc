@@ -29,6 +29,7 @@ p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
 /* cover */
 .cover { min-height: 260mm; display: flex; flex-direction: column; break-after: page; }
 .cover-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(29,31,32,.2); padding-bottom: 7mm; }
+.brand-logo { display: block; height: 30mm; width: auto; }
 .brand-name { font-family: var(--f-head); font-weight: 600; font-size: 15pt; letter-spacing: .06em; line-height: 1.1; }
 .brand-sub { font-size: 9pt; color: var(--muted); margin-top: 2mm; }
 .cover-ref { text-align: right; font-size: 8pt; color: var(--muted); line-height: 1.6; }

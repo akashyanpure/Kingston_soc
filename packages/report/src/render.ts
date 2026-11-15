@@ -13,6 +13,7 @@
 import { DEFECT_CONDITIONS, withScheme } from '@soc/shared';
 import type { FormDefinition, ItemRecord, Signature, SignatureRole, VisitBundle } from '@soc/shared';
 import { cssString, dateTime, esc, groupHash, inspectionWindow, longDate, safeSrc, shortDate } from './format.js';
+import { KINGSTON_CREST, LOGO_ALT } from './logo.js';
 import { photoRefMap, reportPhotos } from './photos.js';
 import { REPORT_CSS } from './styles.js';
 
@@ -83,7 +84,7 @@ export function renderReportHtml(input: ReportInput): string {
 <section class="cover">
   <div class="cover-top">
     <div class="brand">
-      <div class="brand-name">ROYAL BOROUGH OF KINGSTON<br>UPON THAMES</div>
+      <img class="brand-logo" src="${KINGSTON_CREST}" alt="${esc(LOGO_ALT)}">
       <div class="brand-sub">Housing · Private Sector Schemes</div>
     </div>
     <div class="cover-ref mono">${esc(refLabel)}<br>${esc(visit.schemeCode)} · ${esc(visitTypeLabel)}</div>
