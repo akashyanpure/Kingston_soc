@@ -1,6 +1,6 @@
 /**
  * Idempotent dev/test seed: schemes, form version 1 (published), description phrases, users,
- * demo landlords/properties/tenancies and three scheduled visits for j.patel.
+ * demo landlords/properties/tenancies and three scheduled visits for the single officer (p.dekaate).
  * Run: pnpm --filter @soc/db seed   (uses DATABASE_URL from ../../.env)
  */
 import { pathToFileURL } from 'node:url';
@@ -18,9 +18,11 @@ export const DEV_PASSWORD_DEFAULT = 'Password123!local';
 export const SEED_USERS: { email: string; name: string; role: Role }[] = [
   { email: 'admin@kingston.test', name: 'Admin User', role: 'admin' },
   { email: 'manager@kingston.test', name: 'M. Manager', role: 'manager' },
-  { email: 'j.patel@kingston.test', name: 'J. Patel', role: 'officer' },
-  { email: 'r.owusu@kingston.test', name: 'R. Owusu', role: 'officer' },
+  { email: 'p.dekaate@kingston.test', name: 'P. Dekaate', role: 'officer' },
 ];
+
+/** The single seeded officer (user request 2026-11-15). Demo visits are assigned to them. */
+export const SEED_OFFICER_EMAIL = 'p.dekaate@kingston.test';
 
 /** Description library (soc-domain-model references/description-library.md), keyed by template item code. */
 const LIBRARY: Record<string, string[]> = {
@@ -155,7 +157,7 @@ export async function seed(db: Db, opts: SeedOptions = {}): Promise<void> {
     log(`user ${u.email} (${u.role})`);
   }
   if (password === DEV_PASSWORD_DEFAULT) log(`users use the LOCAL DEV password "${DEV_PASSWORD_DEFAULT}" (set SEED_PASSWORD to change; never use in production)`);
-  const officerId = ids.get('j.patel@kingston.test')!;
+  const officerId = ids.get(SEED_OFFICER_EMAIL)!;
 
   // Landlords, properties, tenancies, visits
   const base = opts.today ?? new Date();
@@ -189,7 +191,7 @@ export async function seed(db: Db, opts: SeedOptions = {}): Promise<void> {
         presentRoomCodes: DEFAULT_ROOM_PLANS[d.propertyType], scheduledAt: `${day}T${d.visit!.time}:00.000Z`,
       }, officerId, form!);
     });
-    log(`visit ${d.visit.type} ${d.addressLine1} ${day} ${d.visit.time} (J. Patel)`);
+    log(`visit ${d.visit.type} ${d.addressLine1} ${day} ${d.visit.time} (P. Dekaate)`);
   }
   log('done');
 }

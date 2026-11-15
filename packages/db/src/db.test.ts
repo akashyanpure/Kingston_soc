@@ -52,7 +52,7 @@ const count = async (t: PgTable) => (await db.select({ n: sql<number>`count(*)::
 beforeAll(async () => {
   h = await createTestDb({ seed: true });
   db = h.db;
-  const [u] = await db.select().from(s.users).where(eq(s.users.email, 'j.patel@kingston.test'));
+  const [u] = await db.select().from(s.users).where(eq(s.users.email, 'p.dekaate@kingston.test'));
   officerId = u!.id;
   const [p] = await db.select().from(s.properties).where(eq(s.properties.addressLine1, '14 Acre Road'));
   propertyId = p!.id;
@@ -163,7 +163,7 @@ describe('loadVisitBundle / listVisits', () => {
     const list = await listVisits(db, { from: '2030-01-02', to: '2030-01-02' });
     expect(list).toHaveLength(1);
     const v = VisitSummary.parse(list[0]);
-    expect(v).toMatchObject({ id, address: '14 Acre Road', postcode: 'KT2 6EU', officerName: 'J. Patel', itemsGraded: 2, defects: 1 });
+    expect(v).toMatchObject({ id, address: '14 Acre Road', postcode: 'KT2 6EU', officerName: 'P. Dekaate', itemsGraded: 2, defects: 1 });
     expect(v.itemsTotal).toBe(itemsFor(THREE_BED));
     const mine = await listVisits(db, { officerId, status: 'scheduled' });
     expect(mine.length).toBeGreaterThanOrEqual(3);
