@@ -27,9 +27,9 @@ variable "monthly_cap_usd" {
 }
 
 variable "enable_killswitch" {
-  description = "Create the budget kill switch (SNS + Lambda). Off: the account already has an AWS $20 bill limit."
+  description = "Create the budget kill switch (SNS + Lambda). ON by default; set false in terraform.tfvars to opt out."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "kill_at_percent" {

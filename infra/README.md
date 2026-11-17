@@ -17,11 +17,20 @@ the backup bucket and the secrets.
                             S3 bucket (GUARD stack)
 ```
 
-## Commands (from the repo root)
+## The two commands you need
+
+```powershell
+pnpm cloud:up     # START: everything, in one go (first run on a new PC also does init)
+pnpm cloud:nuke   # KILL ALL: delete every AWS resource of this project, incl. backups (asks to type 'kingston-soc')
+```
+
+To just stop paying but keep the data and URL, use `pnpm cloud:down` instead of `nuke`.
+
+## All commands (from the repo root)
 
 | Command | What it does | Time |
 |---|---|---|
-| `pnpm cloud:init` | One-time: budget, kill switch, CloudFront URL, bucket, secrets | ~5 min |
+| `pnpm cloud:init` | One-time: budget, kill switch, CloudFront URL, bucket, secrets (`up` runs it for you if needed) | ~5 min |
 | `pnpm cloud:up` | Create the server, deploy the **last commit**, restore latest backup (or seed demo data) | ~4–6 min (first ever ~15 min) |
 | `pnpm cloud:deploy` | Ship only what changed, web and API **in parallel** (`-- -Web` / `-- -Api` to force one) | web ~1 min · API ~1–2 min |
 | `pnpm cloud:down` | Back up → offline page → **destroy the server** ($0 afterwards) | ~5 min |
@@ -39,11 +48,14 @@ the backup bucket and the secrets.
 
 - The account itself has an **AWS-enforced $20 monthly bill limit**.
 - AWS Budget (whole account, $10): emails at **50%**, **100%** actual and **100% forecast**.
-- **Kill switch: off by default, ready to enable.** Add `enable_killswitch = true` to
-  `infra/guard/terraform.tfvars` and run `pnpm cloud:init`. At 80% ($8) actual spend it
-  terminates all EC2 instances in every region, deletes unattached volumes, NAT gateways and spare
-  Elastic IPs, stops RDS, disables the CloudFront URL and emails a report
-  (`kill_scope = "project"` limits it to this project). Test with `pnpm cloud:killtest`.
+- **Kill switch: ON** (default `enable_killswitch = true`, activated 2026-11-17). At 80% ($8) actual
+  spend it terminates all EC2 instances in every region, deletes unattached volumes, NAT gateways
+  and spare Elastic IPs, stops RDS, disables the CloudFront URL and emails a report
+  (`kill_scope = "project"` limits it to this project). Test with `pnpm cloud:killtest`
+  (dry run). Confirm the AWS "Subscription Confirmation" emails or the report is not delivered.
+  Opt out: `enable_killswitch = false` in `infra/guard/terraform.tfvars`, then `pnpm cloud:init`.
+- After the kill switch fires, the server is gone and CloudFront is disabled; `pnpm cloud:up`
+  re-enables CloudFront and recreates the server (restoring the last backup).
 - AWS billing data lags by hours, so no budget action is a to-the-cent stop.
 
 ## Cost

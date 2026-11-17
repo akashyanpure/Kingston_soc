@@ -2,11 +2,10 @@
 # Monthly budget (account-wide). Email alerts go straight to var.alert_email
 # (no SNS needed):  50% actual, 100% actual, 100% forecast.
 #
-# KILL SWITCH — OFF by default (the account already has an AWS-enforced $20 bill limit,
-# user decision 2026-11-15). Kept ready: set `enable_killswitch = true` in
-# infra/guard/terraform.tfvars and run `pnpm cloud:init`. When enabled, actual spend at
-# kill_at_percent of the cap triggers a Lambda that decommissions billable resources
-# (see killswitch.py) and emails a report.
+# KILL SWITCH — ON (activated 2026-11-17; default enable_killswitch = true). Actual spend
+# at kill_at_percent of the cap triggers a Lambda that decommissions billable resources
+# (see killswitch.py) and emails a report. Opt out: `enable_killswitch = false` in
+# infra/guard/terraform.tfvars, then `pnpm cloud:init`.
 # ─────────────────────────────────────────────────────────────────────────────
 locals {
   ks = var.enable_killswitch ? 1 : 0

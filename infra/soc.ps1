@@ -3,7 +3,7 @@
   Kingston SOC - AWS on/off control. Run from the repo root:  .\infra\soc.ps1 <command>
 
 .DESCRIPTION
-  init     One-time: check tools + AWS login, create the GUARD stack ($10 cap, kill switch,
+  init      One-time (run automatically by 'up' on a fresh PC): check tools + AWS login, create the GUARD stack ($10 cap, kill switch,
             CloudFront URL, S3 bucket, secrets). Asks for your alert email the first time.
   up        Upload the web app, create the server, deploy the committed API code, restore the
             latest backup (or seed). ~5 min (first ever ~20 min while the dependency cache builds).
@@ -289,11 +289,18 @@ switch ($Command) {
     Deploy-Web $g
     $d = Get-Deployed $g; $d.web = Get-HeadSha; Set-Deployed $g $d
     Say "READY. App URL: $($g.Url)  (the API is 'switched off' until 'up')" 'Green'
-    Write-Host 'Budget alerts (50% / 100% / forecast) go to your email. Kill switch: off unless enable_killswitch = true.' -ForegroundColor Yellow
+    Write-Host 'Budget alerts (50% / 100% / forecast) go to your email. Kill switch: ON at 80% of the cap.' -ForegroundColor Yellow
+    Write-Host 'IMPORTANT: confirm the two AWS "Subscription Confirmation" emails, or the kill-switch report is not delivered.' -ForegroundColor Yellow
   }
 
   'up' {
-    Assert-Login; Assert-GuardReady
+    Assert-Login
+    if (-not (Test-Path (Join-Path $Guard 'terraform.tfstate'))) {
+      Say 'first run on this PC: creating the GUARD stack first (init)'
+      & $PSCommandPath init
+      if ($LASTEXITCODE -ne 0) { Fail 'init failed' }
+    }
+    Assert-GuardReady
     $g = Get-Guard
     Say 'packaging the last commit'
     Publish-Release $g
@@ -408,7 +415,7 @@ switch ($Command) {
   'killtest' {
     Assert-Login; Assert-GuardReady
     $g = Get-Guard
-    if ([string]::IsNullOrWhiteSpace($g.Kill)) { Fail "kill switch is off. Enable: add 'enable_killswitch = true' to infra\guard\terraform.tfvars, then run init." }
+    if ([string]::IsNullOrWhiteSpace($g.Kill)) { Fail "kill switch is off (enable_killswitch = false in infra\guard\terraform.tfvars). Remove that line, then run init." }
     $out = Join-Path $env:TEMP 'soc-killtest.json'
     $payloadFile = Join-Path $env:TEMP 'soc-killtest-payload.json'
     [IO.File]::WriteAllText($payloadFile, '{"dryRun": true}')
