@@ -4,18 +4,20 @@ Mobile web app (PWA) that automates the Royal Borough of Kingston's *Schedule of
 form (`Project_info_files/SOC TEMPLATE (PLS).docx` is the source of truth).
 Monorepo: `apps/web` (PWA), `apps/api` (API + PDF), `packages/*` (db, shared, report), `infra/` (AWS).
 
-## Run it on AWS — one command up, one command to kill everything
+## Run it on AWS — one command to start, one command to stop
 
 ```powershell
 pnpm cloud:up     # START the whole app on AWS (~5 min; first time on a PC ~20 min)
-pnpm cloud:nuke   # KILL ALL AWS resources of this project, incl. backups (type 'kingston-soc' to confirm)
+pnpm cloud:down   # STOP: back up, then destroy the server. Nothing billable left running (~$0)
 ```
+
+`down` keeps the backups and the app URL, so the next `pnpm cloud:up` restores everything.
 
 | You want to… | Run |
 |---|---|
 | Start everything | `pnpm cloud:up` |
-| Stop paying, keep data + URL (~$0) | `pnpm cloud:down` |
-| Delete **everything** from AWS | `pnpm cloud:nuke` |
+| **Stop everything billable (~$0), keep data** | `pnpm cloud:down` |
+| Permanently delete the whole project from AWS, incl. backups (rarely needed) | `pnpm cloud:nuke` |
 | See if it's up and what it costs | `pnpm cloud:status` |
 | Ship new commits while up | `pnpm cloud:deploy` |
 | Get the login password | `pnpm cloud:users` |

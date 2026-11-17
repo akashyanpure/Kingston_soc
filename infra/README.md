@@ -21,10 +21,11 @@ the backup bucket and the secrets.
 
 ```powershell
 pnpm cloud:up     # START: everything, in one go (first run on a new PC also does init)
-pnpm cloud:nuke   # KILL ALL: delete every AWS resource of this project, incl. backups (asks to type 'kingston-soc')
+pnpm cloud:down   # STOP: back up, destroy the server, nothing billable left running (~$0)
 ```
 
-To just stop paying but keep the data and URL, use `pnpm cloud:down` instead of `nuke`.
+`down` keeps backups, the URL, budget and kill switch, so `up` brings everything back.
+`pnpm cloud:nuke` is only for permanently deleting the whole project, backups included.
 
 ## All commands (from the repo root)
 

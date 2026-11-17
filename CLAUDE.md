@@ -8,8 +8,10 @@
 ## AWS (see infra/README.md)
 
 - **Start everything:** `pnpm cloud:up` (runs `init` automatically on a fresh PC).
-- **Kill all AWS resources:** `pnpm cloud:nuke` (interactive: the user must type `kingston-soc`;
-  never run it without the user's explicit request). To stop billing but keep data: `pnpm cloud:down`.
+- **Stop everything billable:** `pnpm cloud:down` (backs up to S3, destroys the server; ~$0
+  afterwards; `up` restores). This is the standard "kill" command.
+- `pnpm cloud:nuke` permanently deletes everything incl. backups (interactive: the user must type
+  `kingston-soc`); never run it without the user's explicit request.
 - Kill switch is **ON** (`enable_killswitch` defaults to true in `infra/guard/variables.tf`): at
   80% of the $10 cap it decommissions EC2/NAT/EIP/RDS in all regions and disables CloudFront.
   `pnpm cloud:killtest` is a safe dry run.
